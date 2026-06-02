@@ -314,8 +314,8 @@ export default async function CandidatoPage({ params }: PageProps) {
               className="text-sm font-medium leading-relaxed"
               style={{ color: theme.page.textSecundario }}
             >
-              Preencha os números dos seus candidatos, salve e leve no celular
-              no dia da eleição.
+              Preencha os números dos seus candidatos, salve no celular para
+              acesso fácil no dia da eleição.
             </p>
           </div>
 
