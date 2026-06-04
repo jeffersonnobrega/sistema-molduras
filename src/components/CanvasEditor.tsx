@@ -22,6 +22,12 @@ interface LeadData {
   consent_version: string;
 }
 
+// Proporção detectada da moldura feed
+interface FrameDimensions {
+  width: number;
+  height: number;
+}
+
 function loadImage(
   src: string,
   crossOrigin?: string,
@@ -48,6 +54,13 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+// Converte dimensões reais para aspect-ratio CSS (ex: "9/16", "1/1", "3/4")
+function toCssAspectRatio(w: number, h: number): string {
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+  const d = gcd(w, h);
+  return `${w / d}/${h / d}`;
+}
+
 export default function CanvasEditor({
   candidatoId,
   nome_urna,
@@ -64,6 +77,16 @@ export default function CanvasEditor({
   const [hasPhoto, setHasPhoto] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Dimensões detectadas das molduras
+  const [storiesDims, setStoriesDims] = useState<FrameDimensions>({
+    width: 9,
+    height: 16,
+  });
+  const [feedDims, setFeedDims] = useState<FrameDimensions>({
+    width: 1,
+    height: 1,
+  });
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const userImgRef = useRef<HTMLImageElement | null>(null);
   const frameImgRef = useRef<HTMLImageElement | null>(null);
@@ -73,14 +96,47 @@ export default function CanvasEditor({
   const activeFrame =
     format === "stories" ? url_moldura : url_moldura_feed || url_moldura;
 
+  const currentDims = format === "stories" ? storiesDims : feedDims;
+  const aspectRatioCss = toCssAspectRatio(
+    currentDims.width,
+    currentDims.height,
+  );
+
   // =========================
-  // DRAW
+  // Pré-carrega as molduras e detecta dimensões reais
+  // =========================
+  useEffect(() => {
+    if (url_moldura) {
+      loadImage(`${url_moldura}?cb=${Date.now()}`, "anonymous")
+        .then((img) => {
+          setStoriesDims({
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+          });
+        })
+        .catch(() => {});
+    }
+  }, [url_moldura]);
+
+  useEffect(() => {
+    const feedUrl = url_moldura_feed || url_moldura;
+    if (feedUrl) {
+      loadImage(`${feedUrl}?cb=${Date.now()}`, "anonymous")
+        .then((img) => {
+          setFeedDims({ width: img.naturalWidth, height: img.naturalHeight });
+        })
+        .catch(() => {});
+    }
+  }, [url_moldura_feed, url_moldura]);
+
+  // =========================
+  // DRAW — usa as dimensões reais da moldura
   // =========================
   const drawCanvas = useCallback(
     (
       userImg: HTMLImageElement,
       frameImg: HTMLImageElement | null,
-      fmt: "stories" | "feed",
+      dims: FrameDimensions,
       z: number,
       off: { x: number; y: number },
     ) => {
@@ -89,8 +145,9 @@ export default function CanvasEditor({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      const W = 1080;
-      const H = fmt === "stories" ? 1920 : 1080;
+      // Usa as dimensões reais da moldura como resolução de exportação
+      const W = dims.width;
+      const H = dims.height;
 
       canvas.width = W;
       canvas.height = H;
@@ -131,9 +188,15 @@ export default function CanvasEditor({
 
   useEffect(() => {
     if (userImgRef.current && hasPhoto) {
-      drawCanvas(userImgRef.current, frameImgRef.current, format, zoom, offset);
+      drawCanvas(
+        userImgRef.current,
+        frameImgRef.current,
+        currentDims,
+        zoom,
+        offset,
+      );
     }
-  }, [zoom, offset, format, hasPhoto, drawCanvas]);
+  }, [zoom, offset, format, hasPhoto, currentDims, drawCanvas]);
 
   useEffect(() => {
     if (!activeFrame) {
@@ -147,7 +210,7 @@ export default function CanvasEditor({
       .then((img) => {
         frameImgRef.current = img;
         if (userImgRef.current && hasPhoto) {
-          drawCanvas(userImgRef.current, img, format, zoom, offset);
+          drawCanvas(userImgRef.current, img, currentDims, zoom, offset);
         }
       })
       .catch(() => {
@@ -174,7 +237,7 @@ export default function CanvasEditor({
         setHasPhoto(true);
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            drawCanvas(img, frameImgRef.current, format, zoom, offset);
+            drawCanvas(img, frameImgRef.current, currentDims, zoom, offset);
             setIsLoading(false);
           });
         });
@@ -184,7 +247,7 @@ export default function CanvasEditor({
         setIsLoading(false);
       }
     },
-    [drawCanvas, format, zoom, offset],
+    [drawCanvas, currentDims, zoom, offset],
   );
 
   // =========================
@@ -217,14 +280,14 @@ export default function CanvasEditor({
         return;
       }
 
-      const delta = dist / pinchRef.current.lastDist;
-      const newZoom = Math.min(
-        3,
-        Math.max(0.5, pinchRef.current.lastZoom * delta),
-      );
+      let nextZoom =
+        dist > pinchRef.current.lastDist
+          ? pinchRef.current.lastZoom * 1.05
+          : pinchRef.current.lastZoom * 0.98;
+      nextZoom = Math.min(3, Math.max(0.5, nextZoom));
       pinchRef.current.lastDist = dist;
-      pinchRef.current.lastZoom = newZoom;
-      setZoom(newZoom);
+      pinchRef.current.lastZoom = nextZoom;
+      setZoom(nextZoom);
       return;
     }
 
@@ -266,26 +329,21 @@ export default function CanvasEditor({
   }, [nome_urna]);
 
   // =========================
-  // SHARE — mobile: gaveta nativa | desktop: WhatsApp Web
-  // Incrementa stats_shares após compartilhar
+  // SHARE
   // =========================
   const share = async () => {
     const canvas = canvasRef.current;
     if (!canvas || isSharing) return;
     setIsSharing(true);
-
     try {
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, "image/png"),
       );
       if (!blob) throw new Error("Erro ao gerar imagem");
-
       const file = new File([blob], `${nome_urna}-foto.png`, {
         type: "image/png",
       });
       const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-
-      // URL atual da página — funciona em dev e produção
       const urlAtual =
         typeof window !== "undefined" ? window.location.href : "";
       const texto = `Apoio ${nome_urna}! Crie a sua foto também 🗳️\n${urlAtual}`;
@@ -295,21 +353,18 @@ export default function CanvasEditor({
         typeof navigator.share === "function" &&
         navigator.canShare?.({ files: [file] })
       ) {
-        // Mobile: gaveta nativa com arquivo
         await navigator.share({
           files: [file],
           title: `Foto ${nome_urna}`,
           text: texto,
         });
       } else {
-        // Desktop: abre WhatsApp Web com texto + link
         window.open(
           `https://web.whatsapp.com/send?text=${encodeURIComponent(texto)}`,
           "_blank",
         );
       }
 
-      // Incrementa contador de compartilhamentos
       supabase
         .rpc("increment_shares_count", { slug_candidato: candidatoId })
         .then(({ error }) => {
@@ -317,21 +372,16 @@ export default function CanvasEditor({
             console.error("Erro ao incrementar shares:", error.message);
         });
     } catch (err: unknown) {
-      if (err instanceof Error && err.name !== "AbortError") {
-        console.error(err);
-      }
+      if (err instanceof Error && err.name !== "AbortError") console.error(err);
     }
-
     setIsSharing(false);
   };
 
   // =========================
-  // SUBMIT — salva lead + incrementa contador de fotos geradas
+  // SUBMIT
   // =========================
   const handleSubmit = async (data: LeadData) => {
     if (!canvasRef.current || !hasPhoto) return;
-
-    // Salva o lead
     const { error: leadError } = await supabase.from("leads").insert([
       {
         nome: data.nome,
@@ -341,21 +391,15 @@ export default function CanvasEditor({
         candidato_slug: candidatoId,
       },
     ]);
-
     if (leadError) {
-      console.error("Erro ao salvar lead:", leadError.message);
-      throw leadError; // LeadForm trata e exibe mensagem de erro
+      console.error(leadError.message);
+      throw leadError;
     }
-
-    // Incrementa contador de fotos geradas (stats_leads_count)
     supabase
       .rpc("increment_leads_count", { slug_candidato: candidatoId })
       .then(({ error }) => {
-        if (error)
-          console.error("Erro ao incrementar leads count:", error.message);
+        if (error) console.error(error.message);
       });
-
-    // Habilita botões — sem download automático
     setIsSubmitted(true);
   };
 
@@ -387,11 +431,9 @@ export default function CanvasEditor({
         </button>
       </div>
 
-      {/* CANVAS AREA */}
+      {/* CANVAS AREA — aspect-ratio dinâmico baseado nas dimensões reais da moldura */}
       <div
-        className={`relative w-full rounded-3xl overflow-hidden bg-gray-200 select-none ${
-          format === "stories" ? "aspect-[9/16]" : "aspect-square"
-        }`}
+        className="relative w-full rounded-3xl overflow-hidden bg-gray-200 select-none"
         onMouseDown={start}
         onMouseMove={move}
         onMouseUp={end}
@@ -399,7 +441,7 @@ export default function CanvasEditor({
         onTouchStart={start}
         onTouchMove={move}
         onTouchEnd={end}
-        style={{ touchAction: "none" }}
+        style={{ aspectRatio: aspectRatioCss, touchAction: "none" }}
       >
         {!hasPhoto && activeFrame && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -431,7 +473,6 @@ export default function CanvasEditor({
         )}
 
         {hasPhoto && <canvas ref={canvasRef} className="w-full h-full" />}
-
         {hasPhoto && <PinchHint />}
       </div>
 
