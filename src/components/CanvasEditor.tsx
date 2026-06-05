@@ -22,7 +22,6 @@ interface LeadData {
   consent_version: string;
 }
 
-// Proporção detectada da moldura feed
 interface FrameDimensions {
   width: number;
   height: number;
@@ -54,11 +53,69 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-// Converte dimensões reais para aspect-ratio CSS (ex: "9/16", "1/1", "3/4")
 function toCssAspectRatio(w: number, h: number): string {
   const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
   const d = gcd(w, h);
   return `${w / d}/${h / d}`;
+}
+
+const isMobileDevice = () =>
+  typeof navigator !== "undefined" &&
+  /Android|iPhone|iPad/i.test(navigator.userAgent);
+
+// Tenta salvar na galeria via Web Share API (mobile) ou dispara download (desktop/fallback)
+async function saveOrDownload(blob: Blob, filename: string): Promise<void> {
+  const file = new File([blob], filename, { type: "image/png" });
+
+  // Mobile: usa navigator.share para acionar o fluxo nativo "Salvar na galeria"
+  if (
+    isMobileDevice() &&
+    typeof navigator.share === "function" &&
+    navigator.canShare?.({ files: [file] })
+  ) {
+    await navigator.share({
+      files: [file],
+      title: filename,
+    });
+    return;
+  }
+
+  // Desktop / fallback: download tradicional
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = url;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+// Compartilhamento genérico: Web Share API nativa no mobile, WhatsApp Web no desktop
+async function shareImage(
+  blob: Blob,
+  filename: string,
+  text: string,
+): Promise<void> {
+  const file = new File([blob], filename, { type: "image/png" });
+
+  if (
+    isMobileDevice() &&
+    typeof navigator.share === "function" &&
+    navigator.canShare?.({ files: [file] })
+  ) {
+    // Oferece todas as apps nativas (WhatsApp, Instagram, Telegram, etc.)
+    await navigator.share({
+      files: [file],
+      title: filename,
+      text,
+    });
+    return;
+  }
+
+  // Desktop: abre WhatsApp Web sem o arquivo (limitação do navegador)
+  window.open(
+    `https://web.whatsapp.com/send?text=${encodeURIComponent(text)}`,
+    "_blank",
+  );
 }
 
 export default function CanvasEditor({
@@ -74,10 +131,10 @@ export default function CanvasEditor({
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [hasPhoto, setHasPhoto] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Dimensões detectadas das molduras
   const [storiesDims, setStoriesDims] = useState<FrameDimensions>({
     width: 9,
     height: 16,
@@ -101,6 +158,8 @@ export default function CanvasEditor({
     currentDims.width,
     currentDims.height,
   );
+
+  const mobile = isMobileDevice();
 
   // =========================
   // Pré-carrega as molduras e detecta dimensões reais
@@ -130,7 +189,7 @@ export default function CanvasEditor({
   }, [url_moldura_feed, url_moldura]);
 
   // =========================
-  // DRAW — usa as dimensões reais da moldura
+  // DRAW
   // =========================
   const drawCanvas = useCallback(
     (
@@ -145,7 +204,6 @@ export default function CanvasEditor({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Usa as dimensões reais da moldura como resolução de exportação
       const W = dims.width;
       const H = dims.height;
 
@@ -317,53 +375,49 @@ export default function CanvasEditor({
   };
 
   // =========================
-  // DOWNLOAD
+  // Gera o blob da imagem atual
   // =========================
-  const download = useCallback(() => {
+  const getCanvasBlob = (): Promise<Blob> => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const link = document.createElement("a");
-    link.download = `${nome_urna}-foto.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  }, [nome_urna]);
+    if (!canvas) return Promise.reject(new Error("Canvas não disponível"));
+    return new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("Erro ao gerar imagem"))),
+        "image/png",
+      ),
+    );
+  };
 
   // =========================
-  // SHARE
+  // DOWNLOAD / SALVAR NA GALERIA
   // =========================
-  const share = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas || isSharing) return;
+  const handleSave = useCallback(async () => {
+    if (!canvasRef.current || isSaving) return;
+    setIsSaving(true);
+    try {
+      const blob = await getCanvasBlob();
+      await saveOrDownload(blob, `${nome_urna}-foto.png`);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error(err);
+      }
+    }
+    setIsSaving(false);
+  }, [nome_urna, isSaving]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // =========================
+  // COMPARTILHAR
+  // =========================
+  const handleShare = async () => {
+    if (!canvasRef.current || isSharing) return;
     setIsSharing(true);
     try {
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/png"),
-      );
-      if (!blob) throw new Error("Erro ao gerar imagem");
-      const file = new File([blob], `${nome_urna}-foto.png`, {
-        type: "image/png",
-      });
-      const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+      const blob = await getCanvasBlob();
       const urlAtual =
         typeof window !== "undefined" ? window.location.href : "";
       const texto = `Apoio ${nome_urna}! Crie a sua foto também 🗳️\n${urlAtual}`;
 
-      if (
-        isMobile &&
-        typeof navigator.share === "function" &&
-        navigator.canShare?.({ files: [file] })
-      ) {
-        await navigator.share({
-          files: [file],
-          title: `Foto ${nome_urna}`,
-          text: texto,
-        });
-      } else {
-        window.open(
-          `https://web.whatsapp.com/send?text=${encodeURIComponent(texto)}`,
-          "_blank",
-        );
-      }
+      await shareImage(blob, `${nome_urna}-foto.png`, texto);
 
       supabase
         .rpc("increment_shares_count", { slug_candidato: candidatoId })
@@ -431,7 +485,7 @@ export default function CanvasEditor({
         </button>
       </div>
 
-      {/* CANVAS AREA — aspect-ratio dinâmico baseado nas dimensões reais da moldura */}
+      {/* CANVAS AREA */}
       <div
         className="relative w-full rounded-3xl overflow-hidden bg-gray-200 select-none"
         onMouseDown={start}
@@ -520,18 +574,31 @@ export default function CanvasEditor({
               <p className="text-center text-xs text-slate-500 font-medium">
                 Sua foto está pronta! Escolha o que fazer:
               </p>
+
+              {/* Salvar — no mobile aciona o fluxo nativo de galeria */}
               <button
-                onClick={download}
-                className="bg-blue-600 text-white p-3 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-blue-600 text-white p-3 rounded-xl text-sm font-semibold disabled:opacity-60 active:scale-95 transition-transform"
               >
-                ⬇️ Baixar Foto
+                {isSaving
+                  ? "Abrindo..."
+                  : mobile
+                    ? "📥 Salvar na Galeria"
+                    : "⬇️ Baixar Foto"}
               </button>
+
+              {/* Compartilhar — Web Share API nativa no mobile, WhatsApp Web no desktop */}
               <button
-                onClick={share}
+                onClick={handleShare}
                 disabled={isSharing}
                 className="bg-green-500 text-white p-3 rounded-xl text-sm font-semibold disabled:opacity-60 active:scale-95 transition-transform"
               >
-                {isSharing ? "Abrindo..." : "💬 Compartilhar no WhatsApp"}
+                {isSharing
+                  ? "Abrindo..."
+                  : mobile
+                    ? "📤 Compartilhar"
+                    : "💬 Compartilhar no WhatsApp"}
               </button>
             </div>
           )}
