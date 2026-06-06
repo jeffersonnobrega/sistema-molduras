@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { CandidatoDB } from "@/types/candidato";
 import CandidatoModal from "@/components/admin/CandidatoModal";
@@ -19,11 +19,18 @@ import {
   Download,
   User,
   UserPlus,
+  ExternalLink,
+  CheckCircle2,
+  XCircle,
+  LayoutGrid,
 } from "lucide-react";
+
+type FilterStatus = "ativos" | "inativos" | "todos";
 
 export default function AdminDashboard() {
   const [candidatos, setCandidatos] = useState<CandidatoDB[]>([]);
   const [activeTab, setActiveTab] = useState<"stats" | "leads">("stats");
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("ativos");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [selectedCandidato, setSelectedCandidato] =
@@ -34,21 +41,16 @@ export default function AdminDashboard() {
 
   const carregarDados = useCallback(async () => {
     try {
-      // 1. Pega o usuário logado
       const { data: authData } = await supabase.auth.getUser();
       const userId = authData.user?.id;
       if (!userId) return;
       setCurrentUserId(userId);
 
-      // 2. Verifica se é admin geral via RPC (seguro, usa SECURITY DEFINER)
       const { data: adminCheck } = await supabase.rpc("is_admin", {
         uid: userId,
       });
       setIsAdminGeral(!!adminCheck);
 
-      // 3. Carrega candidatos:
-      //    - Admin geral: todos
-      //    - Candidato: só o próprio (vinculado pelo user_id)
       const query = supabase
         .from("candidatos")
         .select("*")
@@ -73,6 +75,24 @@ export default function AdminDashboard() {
     window.location.href = "/login";
   };
 
+  // Candidatos filtrados conforme o filtro selecionado
+  const candidatosFiltrados = useMemo(() => {
+    if (filterStatus === "ativos") return candidatos.filter((c) => c.ativo);
+    if (filterStatus === "inativos") return candidatos.filter((c) => !c.ativo);
+    return candidatos;
+  }, [candidatos, filterStatus]);
+
+  // Contagens para os badges dos filtros
+  const counts = useMemo(
+    () => ({
+      ativos: candidatos.filter((c) => c.ativo).length,
+      inativos: candidatos.filter((c) => !c.ativo).length,
+      todos: candidatos.length,
+    }),
+    [candidatos],
+  );
+
+  // Totais consolidados (sempre sobre todos, não filtrados)
   const totais = candidatos.reduce(
     (acc, curr) => ({
       views: acc.views + (curr.total_views || 0),
@@ -91,38 +111,43 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900">
       {/* SIDEBAR */}
-      <aside className="w-full md:w-72 bg-white border-r border-slate-200 flex flex-col md:h-screen md:sticky top-0 z-10 shadow-sm">
-        <div className="p-8">
+      <aside className="w-full md:w-72 bg-white border-r border-slate-200 flex flex-col md:h-screen md:sticky top-0 z-10 shadow-sm shrink-0">
+        <div className="p-8 pb-6">
           <h1 className="text-2xl font-black uppercase italic tracking-tighter text-slate-800">
             SIND <span className="text-blue-600">ADMIN</span>
           </h1>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="px-4 space-y-1">
           <TabButton
             active={activeTab === "stats"}
             onClick={() => setActiveTab("stats")}
-            icon={<LayoutDashboard size={20} />}
+            icon={<LayoutDashboard size={18} />}
             label="Dashboard"
           />
           <TabButton
             active={activeTab === "leads"}
             onClick={() => setActiveTab("leads")}
-            icon={<Users size={20} />}
+            icon={<Users size={18} />}
             label="Base de Leads"
           />
-          {isAdminGeral && (
+        </nav>
+
+        {isAdminGeral && (
+          <div className="px-4 mt-1">
             <a
               href="/admin/colinha"
               className="flex items-center gap-4 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all"
             >
-              <Plus size={20} className="text-blue-500" /> Configurar Colinha
+              <Plus size={18} className="text-blue-500 shrink-0" />
+              Configurar Colinha
             </a>
-          )}
-        </nav>
+          </div>
+        )}
+
+        <div className="flex-1" />
 
         <div className="p-4 border-t border-slate-100 space-y-1">
-          {/* Botão criar usuário — só admin geral */}
           {isAdminGeral && (
             <button
               onClick={() => setIsCreateUserOpen(true)}
@@ -130,7 +155,7 @@ export default function AdminDashboard() {
             >
               <UserPlus
                 size={18}
-                className="group-hover:scale-110 transition-transform"
+                className="group-hover:scale-110 transition-transform shrink-0"
               />
               Criar Acesso
             </button>
@@ -141,7 +166,7 @@ export default function AdminDashboard() {
           >
             <LogOut
               size={18}
-              className="group-hover:translate-x-1 transition-transform"
+              className="group-hover:translate-x-1 transition-transform shrink-0"
             />
             Sair do Sistema
           </button>
@@ -149,31 +174,31 @@ export default function AdminDashboard() {
       </aside>
 
       {/* MAIN */}
-      <main className="flex-1 p-6 md:p-12 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-10 overflow-y-auto">
         <div className="max-w-6xl mx-auto space-y-8">
-          <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+          {/* HEADER */}
+          <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
-              <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">
+              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">
                 {activeTab === "stats" ? "Performance" : "Relatórios de Leads"}
               </h2>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mt-1">
-                <UserCircle size={14} className="text-blue-500" />
+                <UserCircle size={13} className="text-blue-500" />
                 {isAdminGeral
                   ? "Administrador Geral"
                   : candidatos[0]?.nome_urna || "Candidato"}
               </span>
             </div>
 
-            {/* Botão adicionar candidato — admin geral, aba stats */}
             {isAdminGeral && activeTab === "stats" && (
               <button
                 onClick={() => {
                   setSelectedCandidato(null);
                   setIsModalOpen(true);
                 }}
-                className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg active:scale-95"
+                className="bg-blue-600 text-white px-6 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg active:scale-95 shrink-0"
               >
-                <Plus size={16} /> Adicionar Perfil
+                <Plus size={15} /> Adicionar Perfil
               </button>
             )}
           </header>
@@ -188,130 +213,89 @@ export default function AdminDashboard() {
           ) : (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               {activeTab === "stats" ? (
-                <div className="space-y-10">
-                  {/* Totais — só admin geral vê o consolidado */}
+                <div className="space-y-8">
+                  {/* MÉTRICAS TOTAIS — só admin geral */}
                   {isAdminGeral && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                       <MetricCard
                         label="Views"
                         value={totais.views}
-                        icon={<Eye size={20} />}
+                        icon={<Eye size={18} />}
                       />
                       <MetricCard
                         label="Leads"
                         value={totais.leads}
-                        icon={<Users size={20} />}
+                        icon={<Users size={18} />}
                       />
                       <MetricCard
                         label="Downloads"
                         value={totais.downloads}
-                        icon={<Download size={20} />}
+                        icon={<Download size={18} />}
                       />
                       <MetricCard
                         label="Cliques Zap"
                         value={totais.shares}
-                        icon={<Share2 size={20} />}
+                        icon={<Share2 size={18} />}
                       />
                     </div>
                   )}
 
-                  {/* Cards dos candidatos */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {candidatos.map((c) => (
-                      <div
-                        key={c.id}
-                        className={`bg-white p-6 rounded-[2.5rem] border shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 relative group ${
-                          c.ativo
-                            ? "border-slate-200"
-                            : "border-red-100 bg-red-50/20"
-                        }`}
-                      >
-                        <div className="flex items-center gap-4 mb-6">
-                          <div className="relative">
-                            <div
-                              className="w-14 h-14 rounded-full overflow-hidden bg-slate-100 border-2 shadow-sm flex items-center justify-center"
-                              style={{
-                                borderColor: c.cor_primaria || "#e2e8f0",
-                              }}
-                            >
-                              {c.url_foto_perfil ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={c.url_foto_perfil}
-                                  className="w-full h-full object-cover"
-                                  alt={c.nome_urna}
-                                />
-                              ) : (
-                                <User className="text-slate-300" size={24} />
-                              )}
-                            </div>
-                            <div
-                              className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white ${
-                                c.ativo ? "bg-emerald-500" : "bg-red-500"
-                              }`}
-                            />
-                          </div>
-                          <div className="truncate">
-                            <h3 className="font-black uppercase italic text-slate-800 text-lg leading-tight">
-                              {c.nome_urna}
-                            </h3>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <div
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: c.cor_primaria }}
-                              />
-                              <p className="text-[9px] font-bold text-slate-400 uppercase">
-                                {c.partido} · Nº {c.numero_candidato} · /
-                                {c.slug}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                  {/* FILTROS DE STATUS */}
+                  {isAdminGeral && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <FilterChip
+                        active={filterStatus === "ativos"}
+                        onClick={() => setFilterStatus("ativos")}
+                        icon={<CheckCircle2 size={13} />}
+                        label="Ativos"
+                        count={counts.ativos}
+                        colorActive="bg-emerald-600 text-white border-emerald-600"
+                        colorInactive="border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-600"
+                      />
+                      <FilterChip
+                        active={filterStatus === "inativos"}
+                        onClick={() => setFilterStatus("inativos")}
+                        icon={<XCircle size={13} />}
+                        label="Inativos"
+                        count={counts.inativos}
+                        colorActive="bg-red-500 text-white border-red-500"
+                        colorInactive="border-slate-200 text-slate-500 hover:border-red-300 hover:text-red-500"
+                      />
+                      <FilterChip
+                        active={filterStatus === "todos"}
+                        onClick={() => setFilterStatus("todos")}
+                        icon={<LayoutGrid size={13} />}
+                        label="Todos"
+                        count={counts.todos}
+                        colorActive="bg-slate-800 text-white border-slate-800"
+                        colorInactive="border-slate-200 text-slate-500 hover:border-slate-400 hover:text-slate-700"
+                      />
+                    </div>
+                  )}
 
-                        <div className="grid grid-cols-4 gap-1 mb-6 border-y py-6 border-slate-50">
-                          <MiniStat label="Views" value={c.total_views} />
-                          <MiniStat label="Leads" value={c.stats_leads_count} />
-                          <MiniStat
-                            label="Colinhas"
-                            value={c.stats_colinha_downloads}
-                          />
-                          <MiniStat label="Zaps" value={c.total_shares} />
-                        </div>
-
-                        <button
-                          onClick={() => {
+                  {/* CARDS DOS CANDIDATOS */}
+                  {candidatosFiltrados.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {candidatosFiltrados.map((c) => (
+                        <CandidatoCard
+                          key={c.id}
+                          candidato={c}
+                          onEdit={() => {
                             setSelectedCandidato(c);
                             setIsModalOpen(true);
                           }}
-                          className="w-full py-4 bg-slate-50 text-slate-600 rounded-2xl font-black uppercase text-[9px] hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2"
-                        >
-                          <Settings2 size={14} /> Editar Perfil
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Estado vazio — admin sem candidatos */}
-                  {candidatos.length === 0 && !loading && (
-                    <div className="text-center py-24 space-y-4">
-                      <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto">
-                        <Users size={36} className="text-blue-300" />
-                      </div>
-                      <p className="text-sm font-black uppercase text-slate-400 tracking-widest">
-                        Nenhum candidato cadastrado
-                      </p>
-                      {isAdminGeral && (
-                        <button
-                          onClick={() => {
-                            setSelectedCandidato(null);
-                            setIsModalOpen(true);
-                          }}
-                          className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all inline-flex items-center gap-2 shadow-lg"
-                        >
-                          <Plus size={16} /> Adicionar primeiro candidato
-                        </button>
-                      )}
+                        />
+                      ))}
                     </div>
+                  ) : (
+                    <EmptyState
+                      filterStatus={filterStatus}
+                      isAdminGeral={isAdminGeral}
+                      onAdd={() => {
+                        setSelectedCandidato(null);
+                        setIsModalOpen(true);
+                      }}
+                    />
                   )}
                 </div>
               ) : (
@@ -335,13 +319,186 @@ export default function AdminDashboard() {
           isAdmin={isAdminGeral}
         />
       )}
-
       {isCreateUserOpen && (
         <CreateUserModal
           slugsCandidatos={slugsCandidatos}
           onClose={() => setIsCreateUserOpen(false)}
           onSuccess={carregarDados}
         />
+      )}
+    </div>
+  );
+}
+
+// ─── SUB-COMPONENTES ────────────────────────────────────────────────
+
+function CandidatoCard({
+  candidato: c,
+  onEdit,
+}: {
+  candidato: CandidatoDB;
+  onEdit: () => void;
+}) {
+  return (
+    <div
+      className={`bg-white rounded-[2rem] border shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5 flex flex-col ${
+        c.ativo ? "border-slate-200" : "border-red-100 bg-red-50/30"
+      }`}
+    >
+      {/* Status badge */}
+      <div className="px-5 pt-4 flex justify-end">
+        <span
+          className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
+            c.ativo
+              ? "bg-emerald-50 text-emerald-600"
+              : "bg-red-50 text-red-500"
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${c.ativo ? "bg-emerald-500" : "bg-red-400"}`}
+          />
+          {c.ativo ? "Ativo" : "Inativo"}
+        </span>
+      </div>
+
+      {/* Cabeçalho do card */}
+      <div className="flex items-center gap-4 px-5 pb-4 pt-2">
+        <div
+          className="w-13 h-13 rounded-full overflow-hidden bg-slate-100 border-2 shadow-sm flex items-center justify-center shrink-0"
+          style={{
+            borderColor: c.cor_primaria || "#e2e8f0",
+            width: 52,
+            height: 52,
+          }}
+        >
+          {c.url_foto_perfil ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={c.url_foto_perfil}
+              className="w-full h-full object-cover"
+              alt={c.nome_urna}
+            />
+          ) : (
+            <User className="text-slate-300" size={22} />
+          )}
+        </div>
+        <div className="min-w-0">
+          <h3 className="font-black uppercase italic text-slate-800 text-base leading-tight truncate">
+            {c.nome_urna}
+          </h3>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mt-0.5 truncate">
+            {c.partido} · Nº {c.numero_candidato} · /{c.slug}
+          </p>
+        </div>
+      </div>
+
+      {/* Métricas */}
+      <div className="grid grid-cols-4 gap-1 mx-5 mb-4 py-4 border-y border-slate-50">
+        <MiniStat label="Views" value={c.total_views} />
+        <MiniStat label="Leads" value={c.stats_leads_count} />
+        <MiniStat label="Col." value={c.stats_colinha_downloads} />
+        <MiniStat label="Zaps" value={c.total_shares} />
+      </div>
+
+      {/* Ações */}
+      <div className="px-5 pb-5 flex flex-col gap-2 mt-auto">
+        <button
+          onClick={onEdit}
+          className="w-full py-3 bg-slate-50 text-slate-600 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2 active:scale-95"
+        >
+          <Settings2 size={13} /> Editar Perfil
+        </button>
+        <a
+          href={`/candidato/${c.slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full py-3 border border-slate-200 text-slate-500 rounded-xl font-black uppercase text-[9px] tracking-widest hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 active:scale-95"
+        >
+          <ExternalLink size={13} /> Ir para a Página
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  icon,
+  label,
+  count,
+  colorActive,
+  colorInactive,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+  colorActive: string;
+  colorInactive: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 ${
+        active ? colorActive : `bg-white ${colorInactive}`
+      }`}
+    >
+      {icon}
+      {label}
+      <span
+        className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black ${
+          active ? "bg-white/25 text-inherit" : "bg-slate-100 text-slate-500"
+        }`}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function EmptyState({
+  filterStatus,
+  isAdminGeral,
+  onAdd,
+}: {
+  filterStatus: FilterStatus;
+  isAdminGeral: boolean;
+  onAdd: () => void;
+}) {
+  const messages: Record<FilterStatus, { title: string; sub: string }> = {
+    ativos: {
+      title: "Nenhum candidato ativo",
+      sub: "Ative um candidato existente ou adicione um novo.",
+    },
+    inativos: {
+      title: "Nenhum candidato inativo",
+      sub: "Todos os candidatos estão ativos.",
+    },
+    todos: {
+      title: "Nenhum candidato cadastrado",
+      sub: "Adicione o primeiro candidato para começar.",
+    },
+  };
+  const { title, sub } = messages[filterStatus];
+
+  return (
+    <div className="text-center py-20 space-y-4">
+      <div className="w-16 h-16 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto">
+        <Users size={30} className="text-blue-300" />
+      </div>
+      <p className="text-sm font-black uppercase text-slate-400 tracking-widest">
+        {title}
+      </p>
+      <p className="text-xs text-slate-400">{sub}</p>
+      {isAdminGeral && filterStatus !== "inativos" && (
+        <button
+          onClick={onAdd}
+          className="bg-blue-600 text-white px-7 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all inline-flex items-center gap-2 shadow-lg active:scale-95"
+        >
+          <Plus size={15} /> Adicionar candidato
+        </button>
       )}
     </div>
   );
@@ -361,7 +518,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-4 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all ${
+      className={`flex items-center gap-3 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all ${
         active
           ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
           : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
@@ -382,14 +539,16 @@ function MetricCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:border-blue-200 transition-colors">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm hover:border-blue-200 transition-colors">
+      <div className="flex items-center justify-between mb-3">
         <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
           {label}
         </p>
-        <div className="p-2 bg-slate-50 rounded-xl text-slate-400">{icon}</div>
+        <div className="p-1.5 bg-slate-50 rounded-xl text-slate-400">
+          {icon}
+        </div>
       </div>
-      <h2 className="text-3xl font-black tabular-nums tracking-tighter">
+      <h2 className="text-2xl md:text-3xl font-black tabular-nums tracking-tighter">
         {value?.toLocaleString("pt-BR") || 0}
       </h2>
     </div>

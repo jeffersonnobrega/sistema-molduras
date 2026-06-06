@@ -12,6 +12,8 @@ import {
   Palette,
   User,
   Hash,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 interface ModalProps {
@@ -32,7 +34,6 @@ export default function CandidatoModal({
   const [uploadingFeed, setUploadingFeed] = useState(false);
   const [uploadingPerfil, setUploadingPerfil] = useState(false);
 
-  // Estado para armazenar os cargos cadastrados no banco
   const [cargos, setCargos] = useState<CargoPoliticoDB[]>([]);
 
   const [formData, setFormData] = useState<Partial<CandidatoDB>>({
@@ -54,7 +55,6 @@ export default function CandidatoModal({
     ativo: true,
   });
 
-  // Carrega a tabela de cargos politicos do Supabase para alimentar os selects
   useEffect(() => {
     async function fetchCargos() {
       const { data, error } = await supabase
@@ -70,21 +70,29 @@ export default function CandidatoModal({
     if (candidato) {
       setFormData({
         ...candidato,
+        nome_urna: candidato.nome_urna || "",
+        slug: candidato.slug || "",
+        partido: candidato.partido || "",
+        numero_candidato: candidato.numero_candidato || "",
+        cor_primaria: candidato.cor_primaria || "#2563eb",
         cor_fundo: candidato.cor_fundo || "#F8FAFC",
         cor_titulo: candidato.cor_titulo || "#1e293b",
         cor_texto: candidato.cor_texto || "#475569",
         cor_texto_hero:
           candidato.cor_texto_hero || candidato.cor_primaria || "#2563eb",
         cor_botao: candidato.cor_botao || candidato.cor_primaria || "#2563eb",
+        url_moldura: candidato.url_moldura || "",
         url_moldura_feed: candidato.url_moldura_feed || "",
-        numero_candidato: candidato.numero_candidato || "",
         url_foto_perfil: candidato.url_foto_perfil || "",
         cargo_id: candidato.cargo_id || "",
+        ativo:
+          candidato.ativo !== undefined && candidato.ativo !== null
+            ? candidato.ativo
+            : true,
       });
     }
   }, [candidato]);
 
-  // Handler de Upload Genérico para Buckets
   const handleUploadBucket = async (
     e: ChangeEvent<HTMLInputElement>,
     tipo: "stories" | "feed" | "perfil",
@@ -171,6 +179,40 @@ export default function CandidatoModal({
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-10">
+          {/* SEÇÃO DE STATUS DE ATIVAÇÃO */}
+          <section className="bg-slate-50 border border-slate-200 rounded-[2.5rem] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="space-y-1 text-center sm:text-left">
+              <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                Status de Exibição do Candidato
+              </h4>
+              <p className="text-xs text-slate-500 font-medium">
+                Candidatos desativados ficam ocultos no painel principal e têm
+                suas páginas públicas de campanha bloqueadas.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({ ...prev, ativo: !prev.ativo }))
+              }
+              className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wider shadow-sm border transition-all duration-200 active:scale-95 ${
+                formData.ativo
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                  : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+              }`}
+            >
+              {formData.ativo ? (
+                <>
+                  <CheckCircle size={16} /> Ativo / Visível
+                </>
+              ) : (
+                <>
+                  <XCircle size={16} /> Desativado / Oculto
+                </>
+              )}
+            </button>
+          </section>
+
           {/* SEÇÃO 1: INFORMAÇÕES POLÍTICAS E FOTO DE PERFIL */}
           <section className="space-y-4">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
@@ -179,7 +221,6 @@ export default function CandidatoModal({
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200">
-              {/* UPLOAD DA FOTO DE PERFIL CIRCULAR */}
               <div className="flex flex-col items-center justify-center space-y-2 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm h-full min-h-[180px]">
                 <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
                   Foto de Perfil
@@ -213,7 +254,6 @@ export default function CandidatoModal({
                 </div>
               </div>
 
-              {/* INPUTS DE IDENTIFICAÇÃO DIRETA E SELEÇÃO DE CARGO ATUALIZADO */}
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputField
                   label="Nome na Urna"
@@ -251,7 +291,6 @@ export default function CandidatoModal({
                   }
                 />
 
-                {/* SELECT ATUALIZADO: Cargo Político do Candidato (Buscado direto do banco) */}
                 <div className="space-y-2 sm:col-span-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest flex items-center gap-1">
                     <Hash size={12} /> Cargo do Candidato
@@ -275,7 +314,7 @@ export default function CandidatoModal({
             </div>
           </section>
 
-          {/* SEÇÃO 2: MOLDURAS (STORIES / FEED) E PALETA DE CORES */}
+          {/* SEÇÃO 2: IDENTIDADE VISUAL */}
           <section className="space-y-4">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
               <Palette size={14} className="text-blue-500" /> Identidade Visual
@@ -284,7 +323,6 @@ export default function CandidatoModal({
 
             <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-200 flex flex-col gap-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* MOLDURA STORIES */}
                 <div className="flex flex-col items-center bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
                   <span className="text-[9px] font-black uppercase text-slate-400 mb-2 tracking-widest">
                     Moldura Stories (9:16)
@@ -317,7 +355,6 @@ export default function CandidatoModal({
                   </div>
                 </div>
 
-                {/* MOLDURA FEED */}
                 <div className="flex flex-col items-center bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
                   <span className="text-[9px] font-black uppercase text-slate-400 mb-2 tracking-widest">
                     Moldura Feed (1:1)
@@ -351,7 +388,6 @@ export default function CandidatoModal({
                 </div>
               </div>
 
-              {/* CORES */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <ColorPicker
                   label="Cor da Marca"
@@ -419,8 +455,6 @@ export default function CandidatoModal({
   );
 }
 
-/* --- COMPONENTES AUXILIARES --- */
-
 function ColorPicker({
   label,
   value,
@@ -450,7 +484,7 @@ function ColorPicker({
         </label>
         <input
           type="text"
-          value={value}
+          value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           className="flex-1 font-mono text-[10px] px-3 py-2 rounded-lg border border-slate-100 outline-none focus:border-blue-400 uppercase w-full"
         />
@@ -459,6 +493,7 @@ function ColorPicker({
   );
 }
 
+// CORREÇÃO IMPERATIVA DO ERRO: value={value || ""} resolve o bug do input controlado do React
 function InputField({ label, value, onChange, disabled = false }: any) {
   return (
     <div className="space-y-2">
@@ -468,7 +503,7 @@ function InputField({ label, value, onChange, disabled = false }: any) {
       <input
         disabled={disabled}
         className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 font-bold text-slate-700 disabled:opacity-50 disabled:bg-slate-100 transition-all"
-        value={value}
+        value={value || ""}
         onChange={(e) => onChange(e.target.value)}
       />
     </div>

@@ -63,21 +63,29 @@ const isMobileDevice = () =>
   typeof navigator !== "undefined" &&
   /Android|iPhone|iPad/i.test(navigator.userAgent);
 
-// Força download via blob: URL — funciona em desktop e mobile.
-// No Android (Chrome/Samsung Browser) arquivos baixados vão para Downloads
-// e aparecem na Galeria automaticamente se forem JPEG/PNG.
-// Nunca usar navigator.share aqui, pois abre o painel de compartilhamento
-// em vez de salvar diretamente.
+// Tenta salvar na galeria via Web Share API (mobile) ou dispara download (desktop/fallback)
 async function saveOrDownload(blob: Blob, filename: string): Promise<void> {
+  const file = new File([blob], filename, { type: "image/png" });
+
+  // Mobile: usa navigator.share para acionar o fluxo nativo "Salvar na galeria"
+  if (
+    isMobileDevice() &&
+    typeof navigator.share === "function" &&
+    navigator.canShare?.({ files: [file] })
+  ) {
+    await navigator.share({
+      files: [file],
+      title: filename,
+    });
+    return;
+  }
+
+  // Desktop / fallback: download tradicional
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.download = filename;
   link.href = url;
-  // É necessário adicionar ao DOM no mobile para funcionar em alguns browsers
-  link.style.display = "none";
-  document.body.appendChild(link);
   link.click();
-  document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
@@ -160,7 +168,10 @@ export default function CanvasEditor({
     if (url_moldura) {
       loadImage(`${url_moldura}?cb=${Date.now()}`, "anonymous")
         .then((img) => {
-          setStoriesDims({ width: img.naturalWidth, height: img.naturalHeight });
+          setStoriesDims({
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+          });
         })
         .catch(() => {});
     }
@@ -319,10 +330,7 @@ export default function CanvasEditor({
     if ("touches" in e && e.touches.length === 2) {
       const t1 = e.touches[0];
       const t2 = e.touches[1];
-      const dist = Math.hypot(
-        t2.clientX - t1.clientX,
-        t2.clientY - t1.clientY,
-      );
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
 
       if (!pinchRef.current.active) {
         pinchRef.current = { active: true, lastDist: dist, lastZoom: zoom };
@@ -573,7 +581,11 @@ export default function CanvasEditor({
                 disabled={isSaving}
                 className="bg-blue-600 text-white p-3 rounded-xl text-sm font-semibold disabled:opacity-60 active:scale-95 transition-transform"
               >
-                {isSaving ? "Baixando..." : "⬇️ Baixar Foto"}
+                {isSaving
+                  ? "Abrindo..."
+                  : mobile
+                    ? "📥 Salvar na Galeria"
+                    : "⬇️ Baixar Foto"}
               </button>
 
               {/* Compartilhar — Web Share API nativa no mobile, WhatsApp Web no desktop */}

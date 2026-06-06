@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   LayoutDashboard,
+  Users,
   Lock,
   Unlock,
   Loader2,
@@ -166,7 +167,7 @@ export default function AdminColinhaVisual() {
     setConfig((prev: any) => ({ ...prev, presidente_id: idPres || null }));
   };
 
-  // 6. UPLOAD DE FOTO + ENVIAR PARA MODERAÇÃO
+  // 6. UPLOAD DE FOTO
   const handleUploadFotoModeracao = async (cargoNome: string, file: File) => {
     if (!file || !config) return;
 
@@ -195,14 +196,14 @@ export default function AdminColinhaVisual() {
     } catch (err) {
       console.error("Erro no upload da foto do parceiro:", err);
       alert(
-        "Falha ao subir imagem. Certifique-se de que o bucket 'parceiros_fotos' existe e está público.",
+        "Falha ao subir imagem. Verifique se o bucket 'parceiros_fotos' está configurado.",
       );
     } finally {
       setUploadingCargo(null);
     }
   };
 
-  // 7. SALVAR TUDO (PROCESSO EM LOTE)
+  // 7. SALVAR EM LOTE
   const handleSalvarTudo = async () => {
     if (!config) return;
 
@@ -219,7 +220,6 @@ export default function AdminColinhaVisual() {
         .eq("colinha_config_id", config.id);
 
       const itensBanco = dadosAtuaisBanco || [];
-
       const itensDeletar = itensBanco.filter(
         (b) =>
           !travados.some(
@@ -268,12 +268,10 @@ export default function AdminColinhaVisual() {
         .eq("colinha_config_id", config.id);
 
       setTravados(novaCargaTravados || []);
-      alert(
-        "Parabéns! Toda a estrutura da colinha foi salva com sucesso no banco de dados.",
-      );
+      alert("Toda a estrutura da colinha foi salva com sucesso!");
     } catch (err: any) {
       console.error("Erro no salvamento mestre:", err);
-      alert(`Erro crítico ao salvar alterações gerais: ${err.message}`);
+      alert(`Erro crítico ao salvar alterações: ${err.message}`);
     } finally {
       setIsSavingGeral(false);
     }
@@ -296,18 +294,29 @@ export default function AdminColinhaVisual() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row font-sans text-slate-900">
-      {/* SIDEBAR */}
+      {/* SIDEBAR TOTALMENTE CORRIGIDA E SINCRONIZADA */}
       <aside className="w-full md:w-72 bg-white border-r border-slate-200 flex flex-col p-8 shrink-0">
         <h1 className="text-xl font-black uppercase tracking-tighter text-slate-800 mb-8">
           SIND <span className="text-blue-600">ADMIN</span>
         </h1>
         <nav className="space-y-2">
+          {/* Link para voltar ao Dashboard na visualização padrão */}
           <Link
             href="/admin/dashboard"
             className="flex items-center gap-4 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all"
           >
             <LayoutDashboard size={18} /> Dashboard
           </Link>
+
+          {/* Aba de leads agora presente! Passa parâmetro via url para ativar ao carregar o dashboard */}
+          <Link
+            href="/admin?tab=leads"
+            className="flex items-center gap-4 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all"
+          >
+            <Users size={18} /> Base de Leads
+          </Link>
+
+          {/* Estado Selecionado Ativo correspondente ao mock visual da image_f08329.png */}
           <div className="flex items-center gap-4 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest bg-blue-600 text-white shadow-lg shadow-blue-100 cursor-default">
             <Lock size={18} /> Configurar Colinha
           </div>
@@ -317,7 +326,6 @@ export default function AdminColinhaVisual() {
       {/* ÁREA PRINCIPAL */}
       <main className="flex-1 p-6 md:p-12 overflow-y-auto">
         <div className="max-w-3xl mx-auto space-y-6">
-          {/* TOPO: SELETOR DE CANDIDATO */}
           <header className="bg-white p-6 rounded-3xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
             <div>
               <h2 className="text-xl font-black uppercase tracking-tight">
@@ -346,7 +354,6 @@ export default function AdminColinhaVisual() {
             </div>
           </header>
 
-          {/* COMPONENTE DA ESTRUTURA DOS SLOTS */}
           {loadingColinha ? (
             <div className="bg-white p-12 rounded-3xl border flex flex-col items-center justify-center gap-2 shadow-sm">
               <Loader2 className="animate-spin text-blue-600" size={28} />
@@ -365,7 +372,6 @@ export default function AdminColinhaVisual() {
                 </span>
               </div>
 
-              {/* MUDANÇA CRUCIAL: Adicionado um .filter para ignorar o cargo de Presidente na lista dinâmica */}
               {cargosSistema
                 .filter(
                   (cargo) => cargo.nome?.trim().toLowerCase() !== "presidente",
@@ -392,7 +398,6 @@ export default function AdminColinhaVisual() {
                       }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        {/* Botão de Trava/Cadeado */}
                         <div className="flex items-center gap-3">
                           <button
                             type="button"
@@ -427,7 +432,6 @@ export default function AdminColinhaVisual() {
                           </div>
                         </div>
 
-                        {/* Inputs de customização do parceiro */}
                         <div className="flex gap-3 max-w-xs flex-1">
                           <div className="w-1/2">
                             <label className="block text-[7px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
@@ -483,7 +487,6 @@ export default function AdminColinhaVisual() {
                         </div>
                       </div>
 
-                      {/* FLUXO DE MODERAÇÃO DE FOTO */}
                       {isTravado && !isDonoDoSite && (
                         <div className="pt-2 border-t border-slate-200/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/50 p-3 rounded-xl">
                           <div className="flex items-center gap-3">
@@ -544,7 +547,6 @@ export default function AdminColinhaVisual() {
                   );
                 })}
 
-              {/* SLOT EXTRA FIXO: PRESIDENTE DA REPUBLICA (Único local onde deve aparecer) */}
               <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6">
                 <div>
                   <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider block">
@@ -578,7 +580,6 @@ export default function AdminColinhaVisual() {
                 </div>
               </div>
 
-              {/* BARRA DE SALVAMENTO EXPANSIVA GERAL */}
               <div className="pt-4 border-t flex justify-end">
                 <button
                   type="button"
