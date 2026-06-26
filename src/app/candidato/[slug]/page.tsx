@@ -106,6 +106,8 @@ export default async function CandidatoPage({ params }: PageProps) {
     total_shares: candidato.total_shares || 0,
   };
 
+  const COLINHA_ENABLED = false;
+
   return (
     <div
       className="min-h-screen font-sans scroll-smooth transition-colors duration-500"
@@ -168,24 +170,25 @@ export default async function CandidatoPage({ params }: PageProps) {
             </div>
           </a>
 
-          {/* Botão Colinha */}
-          <a
-            href="#colinha"
-            className="shrink-0 px-4 sm:px-6 py-2 rounded-full transition-all active:scale-95 shadow-lg flex items-center gap-2"
-            style={{
-              backgroundColor: theme.nav.button.bg,
-              color: theme.nav.button.text,
-              border: theme.nav.button.border,
-            }}
-          >
-            <CreditCard size={14} />
-            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">
-              Gerar Colinha
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-widest sm:hidden">
-              Colinha
-            </span>
-          </a>
+          {COLINHA_ENABLED && (
+            <a
+              href="#colinha"
+              className="shrink-0 px-4 sm:px-6 py-2 rounded-full transition-all active:scale-95 shadow-lg flex items-center gap-2"
+              style={{
+                backgroundColor: theme.nav.button.bg,
+                color: theme.nav.button.text,
+                border: theme.nav.button.border,
+              }}
+            >
+              <CreditCard size={14} />
+              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">
+                Gerar Colinha
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-widest sm:hidden">
+                Colinha
+              </span>
+            </a>
+          )}
         </div>
       </nav>
 
@@ -282,61 +285,62 @@ export default async function CandidatoPage({ params }: PageProps) {
         />
       </section>
 
-      {/* ======= COLINHA ======= */}
-      <section
-        id="colinha"
-        className="py-20 px-4 md:px-6 scroll-mt-20"
-        style={{ backgroundColor: theme.sections.howItWorksBg }}
-      >
-        <div className="max-w-7xl mx-auto flex flex-col items-center gap-10">
-          <div className="text-center space-y-3 max-w-lg px-2">
-            <div
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest mb-1"
-              style={{
-                borderColor: theme.hero.accent,
-                color: theme.hero.accent,
-                backgroundColor: `${theme.hero.accent}18`,
-              }}
-            >
-              <CreditCard size={10} />
-              Colinha Digital
+      {COLINHA_ENABLED && (
+        <section
+          id="colinha"
+          className="py-20 px-4 md:px-6 scroll-mt-20"
+          style={{ backgroundColor: theme.sections.howItWorksBg }}
+        >
+          <div className="max-w-7xl mx-auto flex flex-col items-center gap-10">
+            <div className="text-center space-y-3 max-w-lg px-2">
+              <div
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest mb-1"
+                style={{
+                  borderColor: theme.hero.accent,
+                  color: theme.hero.accent,
+                  backgroundColor: `${theme.hero.accent}18`,
+                }}
+              >
+                <CreditCard size={10} />
+                Colinha Digital
+              </div>
+
+              <h2
+                className="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter"
+                style={{ color: theme.page.textPrincipal }}
+              >
+                Leve seus candidatos
+                <br />
+                para a urna
+              </h2>
+              <p
+                className="text-sm font-medium leading-relaxed"
+                style={{ color: theme.page.textSecundario }}
+              >
+                Preencha os números dos seus candidatos, salve no celular para
+                acesso fácil no dia da eleição.
+              </p>
             </div>
 
-            <h2
-              className="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter"
-              style={{ color: theme.page.textPrincipal }}
-            >
-              Leve seus candidatos
-              <br />
-              para a urna
-            </h2>
-            <p
-              className="text-sm font-medium leading-relaxed"
-              style={{ color: theme.page.textSecundario }}
-            >
-              Preencha os números dos seus candidatos, salve no celular para
-              acesso fácil no dia da eleição.
-            </p>
+            <CandidatoColinha
+              candidatoData={{
+                id: candidato.id,
+                nome_urna: candidato.nome_urna,
+                numero_candidato: candidato.numero_candidato,
+                url_foto_perfil: candidato.url_foto_perfil,
+                cargo_travado_id: candidato.cargo_travado_id,
+                partido: candidato.partido, // ← corrige erro TypeScript 2741
+              }}
+              config={{
+                tipo_regional: tipoRegionalAdmin,
+                lead_id: undefined,
+              }}
+              theme={theme.editor}
+              partido={candidato.partido}
+            />
           </div>
-
-          <CandidatoColinha
-            candidatoData={{
-              id: candidato.id,
-              nome_urna: candidato.nome_urna,
-              numero_candidato: candidato.numero_candidato,
-              url_foto_perfil: candidato.url_foto_perfil,
-              cargo_travado_id: candidato.cargo_travado_id,
-              partido: candidato.partido, // ← corrige erro TypeScript 2741
-            }}
-            config={{
-              tipo_regional: tipoRegionalAdmin,
-              lead_id: undefined,
-            }}
-            theme={theme.editor}
-            partido={candidato.partido}
-          />
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ======= FOOTER ======= */}
       <footer
@@ -374,7 +378,7 @@ export default async function CandidatoPage({ params }: PageProps) {
           className="text-[10px] font-black uppercase tracking-[0.5em]"
           style={{ color: theme.footer.text }}
         >
-          SIND - Sistema de Molduras Digitais
+          Cleyton Santos
         </p>
         <p
           className="mt-2 text-[9px] font-medium"

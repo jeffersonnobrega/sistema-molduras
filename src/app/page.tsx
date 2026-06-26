@@ -101,7 +101,7 @@ export default function LandingPage() {
       <footer className="bg-slate-950 text-slate-600 py-12 text-center text-[10px] font-bold uppercase tracking-wider border-t border-slate-900">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
           <span className="text-slate-500 font-black tracking-tighter text-sm italic">
-            MOLDURA<span className="text-blue-600">DIGITAL</span>
+            CLEYTON<span className="text-blue-600">SANTOS</span>
           </span>
 
           <div className="flex items-center gap-6">
@@ -113,7 +113,7 @@ export default function LandingPage() {
             </a>
             <span>•</span>
             <p>
-              © {new Date().getFullYear()} MOLDURADIGITAL. Todos os direitos
+              © {new Date().getFullYear()} Cleyton Santos. Todos os direitos
               reservados.
             </p>
           </div>
