@@ -10,13 +10,10 @@ export interface CampoColinha {
 export interface ConfigColinha {
   tipo_eleicao?: "geral" | "municipal";
   uf?: string;
-  // Nova propriedade adicionada para controlar qual cargo regional a colinha vai exibir
   tipo_regional?: "Deputado Estadual" | "Deputado Distrital";
-  // Agora é opcional, pois a colinha nova busca os campos da tabela cargos_politicos
   campos?: CampoColinha[];
 }
 
-// Nova interface baseada na tabela que criamos no Supabase
 export interface CargoPoliticoDB {
   id: string;
   nome: string;
@@ -25,7 +22,13 @@ export interface CargoPoliticoDB {
   created_at?: string;
 }
 
-// Retorno tipado do Supabase para o Candidato
+// Conjunto de molduras: stories + feed + label definido pelo admin
+export interface MolduraSet {
+  label: string; // ex: "Moldura 1", "Azul", "Vermelha"
+  stories: string; // URL da moldura stories
+  feed: string; // URL da moldura feed (pode ser vazio — usa stories como fallback)
+}
+
 export interface CandidatoDB {
   id: string;
   created_at?: string;
@@ -33,30 +36,27 @@ export interface CandidatoDB {
   nome_urna: string;
   partido: string;
   numero_partido: number;
-
-  // ==========================================
-  // NOVAS COLUNAS (Refatoração da Colinha)
-  // ==========================================
   numero_candidato: string;
   url_foto_perfil: string;
   cargo_id: string;
   cargo_travado_id: string;
-  // ==========================================
-
   cor_primaria: string;
-  url_moldura_feed: string;
+  // Colunas legadas — mantidas para retrocompatibilidade
+  // Sempre refletem a primeira entrada do array molduras[]
   url_moldura: string;
+  url_moldura_feed: string;
+  // Array JSONB com até 3 conjuntos de molduras
+  molduras: MolduraSet[];
   config_colinha: ConfigColinha;
   user_id?: string;
   ativo: boolean;
-
   cor_fundo?: string;
   cor_titulo?: string;
   cor_texto?: string;
   cor_texto_hero?: string;
   cor_botao?: string;
-
   // Métricas
+
   total_views: number;
   total_shares: number;
   stats_leads_count: number;

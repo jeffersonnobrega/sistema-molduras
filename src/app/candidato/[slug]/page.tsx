@@ -255,8 +255,17 @@ export default async function CandidatoPage({ params }: PageProps) {
                 candidatoId={candidato.slug}
                 nome_urna={candidato.nome_urna}
                 corPrimaria={candidato.cor_primaria}
-                url_moldura={candidato.url_moldura}
-                url_moldura_feed={candidato.url_moldura_feed}
+                molduras={
+                  candidato.molduras?.length > 0
+                    ? candidato.molduras
+                    : [
+                        {
+                          label: "Moldura 1",
+                          stories: candidato.url_moldura || "",
+                          feed: candidato.url_moldura_feed || "",
+                        },
+                      ]
+                }
                 theme={theme.editor}
               />
             </div>

@@ -4,13 +4,18 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import PhotoUpload from "./PhotoUpload";
 import LeadForm from "./LeadForm";
 import { supabase } from "@/lib/supabase";
-import { Layout, Square } from "lucide-react";
+import { Layout, Square, ChevronLeft, ChevronRight } from "lucide-react";
+
+interface MolduraSet {
+  label: string;
+  stories: string;
+  feed: string;
+}
 
 interface CanvasEditorProps {
   candidatoId: string;
   nome_urna: string;
-  url_moldura?: string;
-  url_moldura_feed?: string;
+  molduras: MolduraSet[]; // array de conjuntos vindos do banco
   corPrimaria?: string;
   theme?: Record<string, unknown>;
 }
@@ -63,24 +68,16 @@ const isMobileDevice = () =>
   typeof navigator !== "undefined" &&
   /Android|iPhone|iPad/i.test(navigator.userAgent);
 
-// Tenta salvar na galeria via Web Share API (mobile) ou dispara download (desktop/fallback)
 async function saveOrDownload(blob: Blob, filename: string): Promise<void> {
   const file = new File([blob], filename, { type: "image/png" });
-
-  // Mobile: usa navigator.share para acionar o fluxo nativo "Salvar na galeria"
   if (
     isMobileDevice() &&
     typeof navigator.share === "function" &&
     navigator.canShare?.({ files: [file] })
   ) {
-    await navigator.share({
-      files: [file],
-      title: filename,
-    });
+    await navigator.share({ files: [file], title: filename });
     return;
   }
-
-  // Desktop / fallback: download tradicional
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.download = filename;
@@ -89,29 +86,20 @@ async function saveOrDownload(blob: Blob, filename: string): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-// Compartilhamento genérico: Web Share API nativa no mobile, WhatsApp Web no desktop
 async function shareImage(
   blob: Blob,
   filename: string,
   text: string,
 ): Promise<void> {
   const file = new File([blob], filename, { type: "image/png" });
-
   if (
     isMobileDevice() &&
     typeof navigator.share === "function" &&
     navigator.canShare?.({ files: [file] })
   ) {
-    // Oferece todas as apps nativas (WhatsApp, Instagram, Telegram, etc.)
-    await navigator.share({
-      files: [file],
-      title: filename,
-      text,
-    });
+    await navigator.share({ files: [file], title: filename, text });
     return;
   }
-
-  // Desktop: abre WhatsApp Web sem o arquivo (limitação do navegador)
   window.open(
     `https://web.whatsapp.com/send?text=${encodeURIComponent(text)}`,
     "_blank",
@@ -121,10 +109,11 @@ async function shareImage(
 export default function CanvasEditor({
   candidatoId,
   nome_urna,
-  url_moldura = "",
-  url_moldura_feed = "",
+  molduras,
+  corPrimaria = "#2563eb",
 }: CanvasEditorProps) {
   const [format, setFormat] = useState<"stories" | "feed">("stories");
+  const [molduraIndex, setMolduraIndex] = useState(0); // qual conjunto está ativo
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -135,58 +124,61 @@ export default function CanvasEditor({
   const [hasPhoto, setHasPhoto] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [storiesDims, setStoriesDims] = useState<FrameDimensions>({
-    width: 9,
-    height: 16,
-  });
-  const [feedDims, setFeedDims] = useState<FrameDimensions>({
-    width: 1,
-    height: 1,
-  });
+  // Dimensões detectadas por (molduraIndex, formato)
+  const [dimsMap, setDimsMap] = useState<Record<string, FrameDimensions>>({});
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const userImgRef = useRef<HTMLImageElement | null>(null);
   const frameImgRef = useRef<HTMLImageElement | null>(null);
-  const lastFrameUrl = useRef("");
+  const lastFrameKey = useRef(""); // "index-format"
   const pinchRef = useRef({ active: false, lastDist: 0, lastZoom: 1 });
 
-  const activeFrame =
-    format === "stories" ? url_moldura : url_moldura_feed || url_moldura;
+  // Moldura atual
+  const molduraAtual = molduras[molduraIndex] ?? {
+    label: "",
+    stories: "",
+    feed: "",
+  };
+  const activeFrameUrl =
+    format === "stories"
+      ? molduraAtual.stories
+      : molduraAtual.feed || molduraAtual.stories;
+  const frameKey = `${molduraIndex}-${format}`;
 
-  const currentDims = format === "stories" ? storiesDims : feedDims;
+  // Dimensões do frame atual (fallback para proporção padrão)
+  const defaultDims: FrameDimensions =
+    format === "stories"
+      ? { width: 1080, height: 1920 }
+      : { width: 1080, height: 1080 };
+  const currentDims = dimsMap[frameKey] ?? defaultDims;
   const aspectRatioCss = toCssAspectRatio(
     currentDims.width,
     currentDims.height,
   );
-
   const mobile = isMobileDevice();
 
   // =========================
-  // Pré-carrega as molduras e detecta dimensões reais
+  // Pré-carrega dimensões de todas as molduras ao montar
   // =========================
   useEffect(() => {
-    if (url_moldura) {
-      loadImage(`${url_moldura}?cb=${Date.now()}`, "anonymous")
-        .then((img) => {
-          setStoriesDims({
-            width: img.naturalWidth,
-            height: img.naturalHeight,
-          });
-        })
-        .catch(() => {});
-    }
-  }, [url_moldura]);
-
-  useEffect(() => {
-    const feedUrl = url_moldura_feed || url_moldura;
-    if (feedUrl) {
-      loadImage(`${feedUrl}?cb=${Date.now()}`, "anonymous")
-        .then((img) => {
-          setFeedDims({ width: img.naturalWidth, height: img.naturalHeight });
-        })
-        .catch(() => {});
-    }
-  }, [url_moldura_feed, url_moldura]);
+    molduras.forEach((m, i) => {
+      const urls: [string, string][] = [
+        [`${i}-stories`, m.stories],
+        [`${i}-feed`, m.feed || m.stories],
+      ];
+      urls.forEach(([key, url]) => {
+        if (!url) return;
+        loadImage(`${url}?cb=${Date.now()}`, "anonymous")
+          .then((img) => {
+            setDimsMap((prev) => ({
+              ...prev,
+              [key]: { width: img.naturalWidth, height: img.naturalHeight },
+            }));
+          })
+          .catch(() => {});
+      });
+    });
+  }, [molduras]);
 
   // =========================
   // DRAW
@@ -206,7 +198,6 @@ export default function CanvasEditor({
 
       const W = dims.width;
       const H = dims.height;
-
       canvas.width = W;
       canvas.height = H;
       ctx.clearRect(0, 0, W, H);
@@ -244,6 +235,7 @@ export default function CanvasEditor({
     [],
   );
 
+  // Re-draw quando zoom/offset/formato/moldura mudam
   useEffect(() => {
     if (userImgRef.current && hasPhoto) {
       drawCanvas(
@@ -254,17 +246,21 @@ export default function CanvasEditor({
         offset,
       );
     }
-  }, [zoom, offset, format, hasPhoto, currentDims, drawCanvas]);
+  }, [zoom, offset, format, molduraIndex, hasPhoto, currentDims, drawCanvas]);
 
+  // Carrega nova moldura quando muda formato ou índice
   useEffect(() => {
-    if (!activeFrame) {
+    if (!activeFrameUrl) {
       frameImgRef.current = null;
+      if (userImgRef.current && hasPhoto) {
+        drawCanvas(userImgRef.current, null, currentDims, zoom, offset);
+      }
       return;
     }
-    if (lastFrameUrl.current === activeFrame && frameImgRef.current) return;
-    lastFrameUrl.current = activeFrame;
+    if (lastFrameKey.current === frameKey && frameImgRef.current) return;
+    lastFrameKey.current = frameKey;
 
-    loadImage(`${activeFrame}?cb=${Date.now()}`, "anonymous")
+    loadImage(`${activeFrameUrl}?cb=${Date.now()}`, "anonymous")
       .then((img) => {
         frameImgRef.current = img;
         if (userImgRef.current && hasPhoto) {
@@ -272,7 +268,7 @@ export default function CanvasEditor({
         }
       })
       .catch(() => {
-        loadImage(activeFrame, "anonymous")
+        loadImage(activeFrameUrl, "anonymous")
           .then((img) => {
             frameImgRef.current = img;
           })
@@ -280,10 +276,10 @@ export default function CanvasEditor({
             frameImgRef.current = null;
           });
       });
-  }, [activeFrame]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeFrameUrl, frameKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // =========================
-  // SELECIONA FOTO
+  // Seleciona foto
   // =========================
   const handleImageSelect = useCallback(
     async (file: File) => {
@@ -299,14 +295,25 @@ export default function CanvasEditor({
             setIsLoading(false);
           });
         });
-      } catch (err) {
-        console.error("Erro ao carregar foto:", err);
+      } catch {
         alert("Não foi possível carregar a foto. Tente novamente.");
         setIsLoading(false);
       }
     },
     [drawCanvas, currentDims, zoom, offset],
   );
+
+  // =========================
+  // Navegação do carrossel
+  // =========================
+  const irParaMoldura = (index: number) => {
+    if (index < 0 || index >= molduras.length) return;
+    frameImgRef.current = null; // força recarregamento da nova moldura
+    lastFrameKey.current = "";
+    setMolduraIndex(index);
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  };
 
   // =========================
   // DRAG + PINCH
@@ -326,18 +333,15 @@ export default function CanvasEditor({
 
   const move = (e: React.MouseEvent | React.TouchEvent) => {
     if ("touches" in e) e.preventDefault();
-
     if ("touches" in e && e.touches.length === 2) {
-      const t1 = e.touches[0];
-      const t2 = e.touches[1];
+      const t1 = e.touches[0],
+        t2 = e.touches[1];
       const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-
       if (!pinchRef.current.active) {
         pinchRef.current = { active: true, lastDist: dist, lastZoom: zoom };
         setIsDragging(false);
         return;
       }
-
       let nextZoom =
         dist > pinchRef.current.lastDist
           ? pinchRef.current.lastZoom * 1.05
@@ -348,11 +352,7 @@ export default function CanvasEditor({
       setZoom(nextZoom);
       return;
     }
-
-    if ("touches" in e && e.touches.length < 2) {
-      pinchRef.current.active = false;
-    }
-
+    if ("touches" in e && e.touches.length < 2) pinchRef.current.active = false;
     if (!isDragging) return;
     const p = getPos(e);
     setOffset((prev) => ({
@@ -363,9 +363,7 @@ export default function CanvasEditor({
   };
 
   const end = (e: React.TouchEvent | React.MouseEvent) => {
-    if ("touches" in e && e.touches.length < 2) {
-      pinchRef.current.active = false;
-    }
+    if ("touches" in e && e.touches.length < 2) pinchRef.current.active = false;
     setIsDragging(false);
   };
 
@@ -375,7 +373,7 @@ export default function CanvasEditor({
   };
 
   // =========================
-  // Gera o blob da imagem atual
+  // Gera blob
   // =========================
   const getCanvasBlob = (): Promise<Blob> => {
     const canvas = canvasRef.current;
@@ -389,7 +387,7 @@ export default function CanvasEditor({
   };
 
   // =========================
-  // DOWNLOAD / SALVAR NA GALERIA
+  // Salvar / Compartilhar
   // =========================
   const handleSave = useCallback(async () => {
     if (!canvasRef.current || isSaving) return;
@@ -398,16 +396,11 @@ export default function CanvasEditor({
       const blob = await getCanvasBlob();
       await saveOrDownload(blob, `${nome_urna}-foto.png`);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name !== "AbortError") {
-        console.error(err);
-      }
+      if (err instanceof Error && err.name !== "AbortError") console.error(err);
     }
     setIsSaving(false);
   }, [nome_urna, isSaving]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // =========================
-  // COMPARTILHAR
-  // =========================
   const handleShare = async () => {
     if (!canvasRef.current || isSharing) return;
     setIsSharing(true);
@@ -415,15 +408,15 @@ export default function CanvasEditor({
       const blob = await getCanvasBlob();
       const urlAtual =
         typeof window !== "undefined" ? window.location.href : "";
-      const texto = `Apoio ${nome_urna}! Crie a sua foto também 🗳️\n${urlAtual}`;
-
-      await shareImage(blob, `${nome_urna}-foto.png`, texto);
-
+      await shareImage(
+        blob,
+        `${nome_urna}-foto.png`,
+        `Apoio ${nome_urna}! Crie a sua foto também 🗳️\n${urlAtual}`,
+      );
       supabase
         .rpc("increment_shares_count", { slug_candidato: candidatoId })
         .then(({ error }) => {
-          if (error)
-            console.error("Erro ao incrementar shares:", error.message);
+          if (error) console.error(error.message);
         });
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== "AbortError") console.error(err);
@@ -432,7 +425,7 @@ export default function CanvasEditor({
   };
 
   // =========================
-  // SUBMIT
+  // Submit
   // =========================
   const handleSubmit = async (data: LeadData) => {
     if (!canvasRef.current || !hasPhoto) return;
@@ -457,8 +450,10 @@ export default function CanvasEditor({
     setIsSubmitted(true);
   };
 
+  const temMultiplasMolduras = molduras.length > 1;
+
   return (
-    <div className="flex flex-col gap-6 max-w-85 mx-auto">
+    <div className="flex flex-col gap-5 max-w-85 mx-auto">
       {/* FORMAT */}
       <div className="flex bg-slate-100 p-1 rounded-2xl gap-1">
         <button
@@ -466,9 +461,7 @@ export default function CanvasEditor({
             setFormat("stories");
             reset();
           }}
-          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold transition-all ${
-            format === "stories" ? "bg-white shadow" : "text-gray-400"
-          }`}
+          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold transition-all ${format === "stories" ? "bg-white shadow" : "text-gray-400"}`}
         >
           <Layout size={14} /> Stories
         </button>
@@ -477,15 +470,67 @@ export default function CanvasEditor({
             setFormat("feed");
             reset();
           }}
-          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold transition-all ${
-            format === "feed" ? "bg-white shadow" : "text-gray-400"
-          }`}
+          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold transition-all ${format === "feed" ? "bg-white shadow" : "text-gray-400"}`}
         >
           <Square size={14} /> Feed
         </button>
       </div>
 
-      {/* CANVAS AREA */}
+      {/* SELETOR DE MOLDURAS — miniaturas clicáveis */}
+      {temMultiplasMolduras && (
+        <div className="flex items-center justify-center gap-3">
+          {molduras.map((m, i) => {
+            const previewUrl =
+              format === "stories" ? m.stories : m.feed || m.stories;
+            const ativo = i === molduraIndex;
+            return (
+              <button
+                key={i}
+                onClick={() => irParaMoldura(i)}
+                title={m.label || `Moldura ${i + 1}`}
+                className="relative shrink-0 rounded-2xl overflow-hidden transition-all duration-200 active:scale-95"
+                style={{
+                  width: 52,
+                  height: 72,
+                  outline: ativo
+                    ? `3px solid ${corPrimaria}`
+                    : "3px solid transparent",
+                  outlineOffset: 2,
+                  boxShadow: ativo
+                    ? `0 4px 16px ${corPrimaria}44`
+                    : "0 1px 4px rgba(0,0,0,0.10)",
+                  opacity: ativo ? 1 : 0.55,
+                }}
+              >
+                {previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={previewUrl}
+                    alt={m.label || `Moldura ${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                    <span className="text-[9px] font-black text-slate-400 uppercase">
+                      {i + 1}
+                    </span>
+                  </div>
+                )}
+
+                {/* Indicador ativo */}
+                {ativo && (
+                  <div
+                    className="absolute bottom-0 left-0 right-0 h-1 rounded-b-2xl"
+                    style={{ backgroundColor: corPrimaria }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* CANVAS */}
       <div
         className="relative w-full rounded-3xl overflow-hidden bg-gray-200 select-none"
         onMouseDown={start}
@@ -497,15 +542,14 @@ export default function CanvasEditor({
         onTouchEnd={end}
         style={{ aspectRatio: aspectRatioCss, touchAction: "none" }}
       >
-        {!hasPhoto && activeFrame && (
+        {!hasPhoto && activeFrameUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={activeFrame}
+            src={activeFrameUrl}
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
             alt=""
           />
         )}
-
         {!hasPhoto && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
             <span className="text-white text-xs font-bold drop-shadow text-center px-4">
@@ -513,7 +557,6 @@ export default function CanvasEditor({
             </span>
           </div>
         )}
-
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
             <span className="text-white text-sm font-semibold">
@@ -521,18 +564,16 @@ export default function CanvasEditor({
             </span>
           </div>
         )}
-
         {!hasPhoto && !isLoading && (
           <PhotoUpload onImageSelect={handleImageSelect} />
         )}
-
         {hasPhoto && <canvas ref={canvasRef} className="w-full h-full" />}
         {hasPhoto && <PinchHint />}
       </div>
 
       {/* CONTROLES */}
       {hasPhoto && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <div className="bg-white p-4 rounded-2xl shadow border space-y-4">
             <label className="block text-xs text-gray-500 font-medium">
               Zoom
@@ -574,8 +615,6 @@ export default function CanvasEditor({
               <p className="text-center text-xs text-slate-500 font-medium">
                 Sua foto está pronta! Escolha o que fazer:
               </p>
-
-              {/* Salvar — no mobile aciona o fluxo nativo de galeria */}
               <button
                 onClick={handleSave}
                 disabled={isSaving}
@@ -587,8 +626,6 @@ export default function CanvasEditor({
                     ? "📥 Salvar na Galeria"
                     : "⬇️ Baixar Foto"}
               </button>
-
-              {/* Compartilhar — Web Share API nativa no mobile, WhatsApp Web no desktop */}
               <button
                 onClick={handleShare}
                 disabled={isSharing}
