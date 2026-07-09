@@ -4,18 +4,19 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import PhotoUpload from "./PhotoUpload";
 import LeadForm from "./LeadForm";
 import { supabase } from "@/lib/supabase";
-import { Layout, Square, ChevronLeft, ChevronRight } from "lucide-react";
+import { Layout, Square, UserSquare2, RefreshCw } from "lucide-react";
 
 interface MolduraSet {
   label: string;
   stories: string;
   feed: string;
+  perfil?: string; // Nova propriedade opcional para retrocompatibilidade
 }
 
 interface CanvasEditorProps {
   candidatoId: string;
   nome_urna: string;
-  molduras: MolduraSet[]; // array de conjuntos vindos do banco
+  molduras: MolduraSet[];
   corPrimaria?: string;
   theme?: Record<string, unknown>;
 }
@@ -112,8 +113,11 @@ export default function CanvasEditor({
   molduras,
   corPrimaria = "#2563eb",
 }: CanvasEditorProps) {
-  const [format, setFormat] = useState<"stories" | "feed">("stories");
-  const [molduraIndex, setMolduraIndex] = useState(0); // qual conjunto está ativo
+  // Estado atualizado para aceitar o formato "perfil"
+  const [format, setFormat] = useState<"stories" | "feed" | "perfil">(
+    "stories",
+  );
+  const [molduraIndex, setMolduraIndex] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -124,32 +128,37 @@ export default function CanvasEditor({
   const [hasPhoto, setHasPhoto] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Dimensões detectadas por (molduraIndex, formato)
   const [dimsMap, setDimsMap] = useState<Record<string, FrameDimensions>>({});
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const userImgRef = useRef<HTMLImageElement | null>(null);
   const frameImgRef = useRef<HTMLImageElement | null>(null);
-  const lastFrameKey = useRef(""); // "index-format"
+  const lastFrameKey = useRef("");
   const pinchRef = useRef({ active: false, lastDist: 0, lastZoom: 1 });
 
-  // Moldura atual
   const molduraAtual = molduras[molduraIndex] ?? {
     label: "",
     stories: "",
     feed: "",
+    perfil: "",
   };
+
+  // Resgate dinâmico do endpoint da imagem com base no formato selecionado
   const activeFrameUrl =
     format === "stories"
       ? molduraAtual.stories
-      : molduraAtual.feed || molduraAtual.stories;
+      : format === "perfil"
+        ? molduraAtual.perfil || molduraAtual.feed || molduraAtual.stories
+        : molduraAtual.feed || molduraAtual.stories;
+
   const frameKey = `${molduraIndex}-${format}`;
 
-  // Dimensões do frame atual (fallback para proporção padrão)
+  // Definição das dimensões padrão (Perfil segue 1080x1080)
   const defaultDims: FrameDimensions =
     format === "stories"
       ? { width: 1080, height: 1920 }
-      : { width: 1080, height: 1080 };
+      : { width: 1080, height: 1080 }; // Tanto feed quanto perfil adotam 1080x1080
+
   const currentDims = dimsMap[frameKey] ?? defaultDims;
   const aspectRatioCss = toCssAspectRatio(
     currentDims.width,
@@ -157,14 +166,12 @@ export default function CanvasEditor({
   );
   const mobile = isMobileDevice();
 
-  // =========================
-  // Pré-carrega dimensões de todas as molduras ao montar
-  // =========================
   useEffect(() => {
     molduras.forEach((m, i) => {
       const urls: [string, string][] = [
         [`${i}-stories`, m.stories],
         [`${i}-feed`, m.feed || m.stories],
+        [`${i}-perfil`, m.perfil || m.feed || m.stories],
       ];
       urls.forEach(([key, url]) => {
         if (!url) return;
@@ -180,9 +187,6 @@ export default function CanvasEditor({
     });
   }, [molduras]);
 
-  // =========================
-  // DRAW
-  // =========================
   const drawCanvas = useCallback(
     (
       userImg: HTMLImageElement,
@@ -235,7 +239,6 @@ export default function CanvasEditor({
     [],
   );
 
-  // Re-draw quando zoom/offset/formato/moldura mudam
   useEffect(() => {
     if (userImgRef.current && hasPhoto) {
       drawCanvas(
@@ -248,7 +251,6 @@ export default function CanvasEditor({
     }
   }, [zoom, offset, format, molduraIndex, hasPhoto, currentDims, drawCanvas]);
 
-  // Carrega nova moldura quando muda formato ou índice
   useEffect(() => {
     if (!activeFrameUrl) {
       frameImgRef.current = null;
@@ -276,11 +278,8 @@ export default function CanvasEditor({
             frameImgRef.current = null;
           });
       });
-  }, [activeFrameUrl, frameKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeFrameUrl, frameKey]);
 
-  // =========================
-  // Seleciona foto
-  // =========================
   const handleImageSelect = useCallback(
     async (file: File) => {
       setIsLoading(true);
@@ -303,21 +302,15 @@ export default function CanvasEditor({
     [drawCanvas, currentDims, zoom, offset],
   );
 
-  // =========================
-  // Navegação do carrossel
-  // =========================
   const irParaMoldura = (index: number) => {
     if (index < 0 || index >= molduras.length) return;
-    frameImgRef.current = null; // força recarregamento da nova moldura
+    frameImgRef.current = null;
     lastFrameKey.current = "";
     setMolduraIndex(index);
     setZoom(1);
     setOffset({ x: 0, y: 0 });
   };
 
-  // =========================
-  // DRAG + PINCH
-  // =========================
   const getPos = (e: React.MouseEvent | React.TouchEvent) => {
     if ("touches" in e)
       return { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -372,9 +365,6 @@ export default function CanvasEditor({
     setOffset({ x: 0, y: 0 });
   };
 
-  // =========================
-  // Gera blob
-  // =========================
   const getCanvasBlob = (): Promise<Blob> => {
     const canvas = canvasRef.current;
     if (!canvas) return Promise.reject(new Error("Canvas não disponível"));
@@ -386,20 +376,17 @@ export default function CanvasEditor({
     );
   };
 
-  // =========================
-  // Salvar / Compartilhar
-  // =========================
   const handleSave = useCallback(async () => {
     if (!canvasRef.current || isSaving) return;
     setIsSaving(true);
     try {
       const blob = await getCanvasBlob();
-      await saveOrDownload(blob, `${nome_urna}-foto.png`);
+      await saveOrDownload(blob, `${nome_urna}-${format}.png`);
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== "AbortError") console.error(err);
     }
     setIsSaving(false);
-  }, [nome_urna, isSaving]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nome_urna, isSaving, format]);
 
   const handleShare = async () => {
     if (!canvasRef.current || isSharing) return;
@@ -410,7 +397,7 @@ export default function CanvasEditor({
         typeof window !== "undefined" ? window.location.href : "";
       await shareImage(
         blob,
-        `${nome_urna}-foto.png`,
+        `${nome_urna}-${format}.png`,
         `Apoio ${nome_urna}! Crie a sua foto também 🗳️\n${urlAtual}`,
       );
       supabase
@@ -424,9 +411,6 @@ export default function CanvasEditor({
     setIsSharing(false);
   };
 
-  // =========================
-  // Submit
-  // =========================
   const handleSubmit = async (data: LeadData) => {
     if (!canvasRef.current || !hasPhoto) return;
     const { error: leadError } = await supabase.from("leads").insert([
@@ -438,10 +422,7 @@ export default function CanvasEditor({
         candidato_slug: candidatoId,
       },
     ]);
-    if (leadError) {
-      console.error(leadError.message);
-      throw leadError;
-    }
+    if (leadError) throw leadError;
     supabase
       .rpc("increment_leads_count", { slug_candidato: candidatoId })
       .then(({ error }) => {
@@ -454,7 +435,7 @@ export default function CanvasEditor({
 
   return (
     <div className="flex flex-col gap-5 max-w-85 mx-auto">
-      {/* FORMAT */}
+      {/* SELETOR DE FORMATO EXPANDIDO COM PERFIL */}
       <div className="flex bg-slate-100 p-1 rounded-2xl gap-1">
         <button
           onClick={() => {
@@ -474,14 +455,27 @@ export default function CanvasEditor({
         >
           <Square size={14} /> Feed
         </button>
+        <button
+          onClick={() => {
+            setFormat("perfil");
+            reset();
+          }}
+          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold transition-all ${format === "perfil" ? "bg-white shadow" : "text-gray-400"}`}
+        >
+          <UserSquare2 size={14} /> Perfil
+        </button>
       </div>
 
-      {/* SELETOR DE MOLDURAS — miniaturas clicáveis */}
+      {/* SELETOR DE MOLDURAS */}
       {temMultiplasMolduras && (
         <div className="flex items-center justify-center gap-3">
           {molduras.map((m, i) => {
             const previewUrl =
-              format === "stories" ? m.stories : m.feed || m.stories;
+              format === "stories"
+                ? m.stories
+                : format === "perfil"
+                  ? m.perfil || m.feed || m.stories
+                  : m.feed || m.stories;
             const ativo = i === molduraIndex;
             return (
               <button
@@ -503,7 +497,6 @@ export default function CanvasEditor({
                 }}
               >
                 {previewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={previewUrl}
                     alt={m.label || `Moldura ${i + 1}`}
@@ -516,8 +509,6 @@ export default function CanvasEditor({
                     </span>
                   </div>
                 )}
-
-                {/* Indicador ativo */}
                 {ativo && (
                   <div
                     className="absolute bottom-0 left-0 right-0 h-1 rounded-b-2xl"
@@ -530,7 +521,7 @@ export default function CanvasEditor({
         </div>
       )}
 
-      {/* CANVAS */}
+      {/* CANVAS CONTAINER */}
       <div
         className="relative w-full rounded-3xl overflow-hidden bg-gray-200 select-none"
         onMouseDown={start}
@@ -543,7 +534,6 @@ export default function CanvasEditor({
         style={{ aspectRatio: aspectRatioCss, touchAction: "none" }}
       >
         {!hasPhoto && activeFrameUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={activeFrameUrl}
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"

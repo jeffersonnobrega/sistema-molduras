@@ -16,6 +16,7 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+const SLUGS_SISTEMA_MOLDURA = ["pepa", "anchieta"];
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
@@ -387,8 +388,12 @@ export default async function CandidatoPage({ params }: PageProps) {
           className="text-[10px] font-black uppercase tracking-[0.5em]"
           style={{ color: theme.footer.text }}
         >
-          Cleyton Santos
+          {/* Utilizando a constante global para validar o slug */}
+          {SLUGS_SISTEMA_MOLDURA.includes(slug)
+            ? "Sistema Moldura Digital"
+            : "Cleyton Santos"}
         </p>
+
         <p
           className="mt-2 text-[9px] font-medium"
           style={{ color: theme.footer.copy }}
@@ -396,7 +401,6 @@ export default async function CandidatoPage({ params }: PageProps) {
           {new Date().getFullYear()} Todos os direitos reservados.
         </p>
       </footer>
-
       <CookieBanner />
     </div>
   );

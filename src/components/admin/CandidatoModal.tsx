@@ -21,6 +21,7 @@ interface MolduraSet {
   label: string;
   stories: string;
   feed: string;
+  perfil?: string;
 }
 
 interface ModalProps {
@@ -30,7 +31,12 @@ interface ModalProps {
   isAdmin: boolean;
 }
 
-const MOLDURA_VAZIA: MolduraSet = { label: "", stories: "", feed: "" };
+const MOLDURA_VAZIA: MolduraSet = {
+  label: "",
+  stories: "",
+  feed: "",
+  perfil: "",
+};
 const MAX_MOLDURAS = 3;
 
 export default function CandidatoModal({
@@ -146,7 +152,7 @@ export default function CandidatoModal({
   const handleUploadMoldura = async (
     e: ChangeEvent<HTMLInputElement>,
     index: number,
-    tipo: "stories" | "feed",
+    tipo: "stories" | "feed" | "perfil",
   ) => {
     const file = e.target.files?.[0];
     if (!file || !isAdmin || !formData.slug) return;
@@ -222,7 +228,7 @@ export default function CandidatoModal({
         url_moldura: primeiraMoldura.stories || "",
         url_moldura_feed: primeiraMoldura.feed || "",
         // Novo JSONB com todos os conjuntos
-        molduras: molduras.filter((m) => m.stories || m.feed), // remove vazios
+        molduras: molduras.filter((m) => m.stories || m.feed || m.perfil),
       };
 
       const { error } = await supabase.from("candidatos").upsert(payload);
@@ -399,15 +405,17 @@ export default function CandidatoModal({
                   </div>
 
                   {/* Upload stories + feed */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {(["stories", "feed"] as const).map((tipo) => {
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {(["stories", "feed", "perfil"] as const).map((tipo) => {
                       const uploadKey = `${index}-${tipo}`;
                       const isUp = uploadingMoldura === uploadKey;
-                      const url = moldura[tipo];
+                      const url = moldura[tipo] ?? "";
                       const label =
                         tipo === "stories"
                           ? "Stories (9:16)"
-                          : "Feed (proporção livre)";
+                          : tipo === "feed"
+                            ? "Feed (proporção livre)"
+                            : "Perfil (1:1)";
 
                       return (
                         <div
@@ -480,7 +488,7 @@ export default function CandidatoModal({
               label="Identidade Visual"
             />
             <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-3 gap-4">
                 <ColorPicker
                   label="Cor da Marca"
                   value={formData.cor_primaria!}
