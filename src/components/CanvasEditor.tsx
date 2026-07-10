@@ -194,6 +194,7 @@ export default function CanvasEditor({
       dims: FrameDimensions,
       z: number,
       off: { x: number; y: number },
+      fmt?: "stories" | "feed" | "perfil",
     ) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -207,6 +208,16 @@ export default function CanvasEditor({
       ctx.clearRect(0, 0, W, H);
 
       ctx.save();
+
+      // Formato perfil: aplica máscara circular antes de desenhar a foto
+      if (fmt === "perfil") {
+        const radius = Math.min(W, H) / 2;
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, radius, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+      }
+
       ctx.translate(W / 2 + off.x, H / 2 + off.y);
       ctx.scale(z, z);
       const scale = Math.max(
@@ -247,6 +258,7 @@ export default function CanvasEditor({
         currentDims,
         zoom,
         offset,
+        format,
       );
     }
   }, [zoom, offset, format, molduraIndex, hasPhoto, currentDims, drawCanvas]);
@@ -255,7 +267,7 @@ export default function CanvasEditor({
     if (!activeFrameUrl) {
       frameImgRef.current = null;
       if (userImgRef.current && hasPhoto) {
-        drawCanvas(userImgRef.current, null, currentDims, zoom, offset);
+        drawCanvas(userImgRef.current, null, currentDims, zoom, offset, format);
       }
       return;
     }
@@ -266,7 +278,14 @@ export default function CanvasEditor({
       .then((img) => {
         frameImgRef.current = img;
         if (userImgRef.current && hasPhoto) {
-          drawCanvas(userImgRef.current, img, currentDims, zoom, offset);
+          drawCanvas(
+            userImgRef.current,
+            img,
+            currentDims,
+            zoom,
+            offset,
+            format,
+          );
         }
       })
       .catch(() => {
@@ -290,7 +309,14 @@ export default function CanvasEditor({
         setHasPhoto(true);
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            drawCanvas(img, frameImgRef.current, currentDims, zoom, offset);
+            drawCanvas(
+              img,
+              frameImgRef.current,
+              currentDims,
+              zoom,
+              offset,
+              format,
+            );
             setIsLoading(false);
           });
         });
@@ -299,7 +325,7 @@ export default function CanvasEditor({
         setIsLoading(false);
       }
     },
-    [drawCanvas, currentDims, zoom, offset],
+    [drawCanvas, currentDims, zoom, offset, format],
   );
 
   const irParaMoldura = (index: number) => {
@@ -542,7 +568,7 @@ export default function CanvasEditor({
         )}
         {!hasPhoto && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <span className="text-white text-xs font-bold drop-shadow text-center px-4">
+            <span className="text-black text-xs font-bold drop-shadow text-center px-4">
               Toque para adicionar sua foto
             </span>
           </div>
