@@ -107,7 +107,7 @@ export default async function CandidatoPage({ params }: PageProps) {
     total_shares: candidato.total_shares || 0,
   };
 
-  const COLINHA_ENABLED = false;
+  const COLINHA_ENABLED = true;
 
   return (
     <div
