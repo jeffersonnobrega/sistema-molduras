@@ -13,6 +13,18 @@ export default function LandingPage() {
   const [totalLeads, setTotalLeads] = useState<number>(0);
   const [loadingStats, setLoadingStats] = useState(true);
 
+  // Fallback para convites quando o Supabase redirecionar ao Site URL raiz.
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    if (
+      hashParams.get("type") === "invite" &&
+      hashParams.get("access_token") &&
+      hashParams.get("refresh_token")
+    ) {
+      window.location.replace(`/admin/reset-password${window.location.hash}`);
+    }
+  }, []);
+
   // Busca o somatório global de leads de todas as campanhas no banco de dados
   useEffect(() => {
     async function fetchStats() {

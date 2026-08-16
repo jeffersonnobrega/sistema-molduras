@@ -4,7 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  // O convite deve voltar para a mesma origem que fez a requisição.
+  // Evita fallback para o Site URL quando a variável de ambiente estiver ausente.
+  const appUrl = req.nextUrl.origin.replace(/\/$/, "");
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json({ error: "Configuração do servidor incompleta." }, { status: 500 });
   }
