@@ -9,10 +9,6 @@ import {
   Unlock,
   Loader2,
   Save,
-  Upload,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,7 +29,6 @@ export default function AdminColinhaVisual() {
   const [loadingListas, setLoadingListas] = useState(true);
   const [loadingColinha, setLoadingColinha] = useState(false);
   const [isSavingGeral, setIsSavingGeral] = useState(false);
-  const [uploadingCargo, setUploadingCargo] = useState<string | null>(null);
 
   // 1. CARGA INICIAL
   useEffect(() => {
@@ -134,14 +129,12 @@ export default function AdminColinhaVisual() {
       );
     } else {
       const novoSlotLocal = {
-        id: `temp-${Date.now()}`,
+        id: crypto.randomUUID(),
         colinha_config_id: config?.id,
         cargo_nome: cargoObj.nome,
         nome_urna: "",
         partido: candidatoSelecionadoObj?.partido || "",
         numero: "",
-        status_foto: "sem_foto",
-        url_foto: null,
       };
       setTravados((prev) => [...prev, novoSlotLocal]);
     }
@@ -167,43 +160,7 @@ export default function AdminColinhaVisual() {
     setConfig((prev: any) => ({ ...prev, presidente_id: idPres || null }));
   };
 
-  // 6. UPLOAD DE FOTO
-  const handleUploadFotoModeracao = async (cargoNome: string, file: File) => {
-    if (!file || !config) return;
-
-    setUploadingCargo(cargoNome);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${selectedCandidatoId}/${cargoNome.toLowerCase().replace(/\s+/g, "_")}-${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("parceiros_fotos")
-        .upload(fileName, file, { cacheControl: "3600", upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("parceiros_fotos").getPublicUrl(fileName);
-
-      setTravados((prev) =>
-        prev.map((t) =>
-          t.cargo_nome.toUpperCase() === cargoNome.toUpperCase()
-            ? { ...t, url_foto: publicUrl, status_foto: "pendente" }
-            : t,
-        ),
-      );
-    } catch (err) {
-      console.error("Erro no upload da foto do parceiro:", err);
-      alert(
-        "Falha ao subir imagem. Verifique se o bucket 'parceiros_fotos' está configurado.",
-      );
-    } finally {
-      setUploadingCargo(null);
-    }
-  };
-
-  // 7. SALVAR EM LOTE
+  // 6. SALVAR EM LOTE
   const handleSalvarTudo = async () => {
     if (!config) return;
 
@@ -243,7 +200,7 @@ export default function AdminColinhaVisual() {
         );
 
         return {
-          ...(correspondenteNoBanco ? { id: correspondenteNoBanco.id } : {}),
+          id: correspondenteNoBanco?.id || item.id,
           colinha_config_id: config.id,
           cargo_nome: item.cargo_nome,
           nome_urna: item.nome_urna || "Nome do Parceiro",
@@ -464,7 +421,7 @@ export default function AdminColinhaVisual() {
                             </label>
                             <input
                               type="text"
-                              placeholder="Ex: 40123"
+                              placeholder={"0".repeat(cargo.digitos || 5)}
                               maxLength={cargo.digitos || 5}
                               disabled={isDonoDoSite || !isTravado}
                               value={
@@ -487,62 +444,6 @@ export default function AdminColinhaVisual() {
                         </div>
                       </div>
 
-                      {isTravado && !isDonoDoSite && (
-                        <div className="pt-2 border-t border-slate-200/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/50 p-3 rounded-xl">
-                          <div className="flex items-center gap-3">
-                            <label className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-wider px-3 py-2 rounded-lg flex items-center gap-2 transition-all active:scale-95">
-                              {uploadingCargo === cargo.nome ? (
-                                <Loader2 size={12} className="animate-spin" />
-                              ) : (
-                                <Upload size={12} />
-                              )}
-                              Enviar Foto Parceiro
-                              <input
-                                type="file"
-                                accept="image/*"
-                                disabled={uploadingCargo === cargo.nome}
-                                className="hidden"
-                                onChange={(e) => {
-                                  if (e.target.files && e.target.files[0]) {
-                                    handleUploadFotoModeracao(
-                                      cargo.nome,
-                                      e.target.files[0],
-                                    );
-                                  }
-                                }}
-                              />
-                            </label>
-
-                            {travadoObj.url_foto && (
-                              <img
-                                src={travadoObj.url_foto}
-                                alt="Preview"
-                                className="w-8 h-8 rounded-full object-cover border border-slate-300 shadow-inner"
-                              />
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-wider">
-                            {travadoObj.status_foto === "aprovado" && (
-                              <span className="text-emerald-600 flex items-center gap-1">
-                                <CheckCircle2 size={13} /> Publicado na Colinha
-                              </span>
-                            )}
-                            {travadoObj.status_foto === "pendente" && (
-                              <span className="text-amber-600 flex items-center gap-1 animate-pulse">
-                                <Clock size={13} /> Em Moderação
-                              </span>
-                            )}
-                            {(travadoObj.status_foto === "sem_foto" ||
-                              !travadoObj.status_foto) && (
-                              <span className="text-slate-400 flex items-center gap-1">
-                                <AlertCircle size={13} /> Sem Foto (Apenas
-                                Texto)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}

@@ -118,7 +118,15 @@ export default function CandidatoColinha({
   // =========================
   const gerarPng = async (): Promise<string> => {
     if (!colinhaRef.current) throw new Error("Ref não disponível");
-    return toPng(colinhaRef.current, { pixelRatio: 2, cacheBust: true });
+    return toPng(colinhaRef.current, {
+      pixelRatio: 2,
+      cacheBust: true,
+      backgroundColor: "#ffffff",
+      style: {
+        borderRadius: "0",
+        boxShadow: "none",
+      },
+    });
   };
 
   const salvarDadosColinha = async (dataUrl: string) => {
@@ -290,9 +298,7 @@ export default function CandidatoColinha({
                 : nomesDigitados[cargo.id] || "";
             const fotoExibida = isDonoPagina
               ? candidatoData.url_foto_perfil
-              : isTravadoPeloAdmin
-                ? parceiro.url_foto
-                : null;
+              : null;
 
             return (
               <div
@@ -332,18 +338,20 @@ export default function CandidatoColinha({
                         <span className="text-[11px] font-black text-slate-700 text-right uppercase block truncate">
                           {nomeExibido}
                         </span>
-                        <div className="w-7 h-7 bg-white border border-slate-200 rounded-full overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
-                          {fotoExibida ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={fotoExibida}
-                              className="w-full h-full object-cover"
-                              alt=""
-                            />
-                          ) : (
-                            <ImageIcon size={10} className="text-slate-300" />
-                          )}
-                        </div>
+                        {isDonoPagina && (
+                          <div className="w-7 h-7 bg-white border border-slate-200 rounded-full overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
+                            {fotoExibida ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={fotoExibida}
+                                className="w-full h-full object-cover"
+                                alt=""
+                              />
+                            ) : (
+                              <ImageIcon size={10} className="text-slate-300" />
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (

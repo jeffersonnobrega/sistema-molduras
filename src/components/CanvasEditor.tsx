@@ -70,20 +70,13 @@ const isMobileDevice = () =>
   /Android|iPhone|iPad/i.test(navigator.userAgent);
 
 async function saveOrDownload(blob: Blob, filename: string): Promise<void> {
-  const file = new File([blob], filename, { type: "image/png" });
-  if (
-    isMobileDevice() &&
-    typeof navigator.share === "function" &&
-    navigator.canShare?.({ files: [file] })
-  ) {
-    await navigator.share({ files: [file], title: filename });
-    return;
-  }
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.download = filename;
   link.href = url;
+  document.body.appendChild(link);
   link.click();
+  link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
