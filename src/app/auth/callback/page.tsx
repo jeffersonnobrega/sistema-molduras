@@ -15,25 +15,67 @@ export default function AuthCallbackPage() {
   const [state, dispatch] = useReducer(reducer, { status: "loading" });
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("code");
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const errorDescription =
+      searchParams.get("error_description") ||
+      hashParams.get("error_description");
 
-    if (!code) {
-      dispatch({
-        status: "error",
-        message: "Link inválido. Nenhum código encontrado.",
+    if (errorDescription) {
+      dispatch({ status: "error", message: errorDescription });
+      return;
+    }
+
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+    if (accessToken && refreshToken) {
+      // O reset-password valida e instala a sessão recebida no hash.
+      window.location.replace(`/admin/reset-password${window.location.hash}`);
+      return;
+    }
+
+    const code = searchParams.get("code");
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) {
+          dispatch({
+            status: "error",
+            message: "Link expirado ou inválido. Solicite um novo.",
+          });
+          return;
+        }
+        window.location.replace("/admin/reset-password");
       });
       return;
     }
 
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (error) {
-        dispatch({
-          status: "error",
-          message: "Link expirado ou inválido. Solicite um novo.",
+    const tokenHash = searchParams.get("token_hash");
+    const type = searchParams.get("type");
+    if (tokenHash && (type === "invite" || type === "recovery")) {
+      supabase.auth
+        .verifyOtp({ token_hash: tokenHash, type })
+        .then(({ error }) => {
+          if (error) {
+            dispatch({
+              status: "error",
+              message: "Link expirado ou inválido. Solicite um novo.",
+            });
+            return;
+          }
+          window.location.replace("/admin/reset-password");
         });
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        window.location.replace("/admin/reset-password");
         return;
       }
-      window.location.replace("/admin/reset-password");
+      dispatch({
+        status: "error",
+        message: "Link inválido. Nenhum token de convite foi encontrado.",
+      });
     });
   }, []);
 

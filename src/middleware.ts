@@ -31,9 +31,8 @@ export async function middleware(request: NextRequest) {
   );
 
   // ✅ sessão
-  const result = await supabase.auth.getSession();
-  const session = result?.data?.session ?? null;
-  const user = session?.user ?? null;
+  const result = await supabase.auth.getUser();
+  const user = result.data.user;
 
   // ✅ proteção admin (produção + teste compatível)
   if (!user && pathname.startsWith("/admin")) {

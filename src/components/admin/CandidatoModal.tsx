@@ -127,10 +127,10 @@ export default function CandidatoModal({
   // =========================
   const handleUploadPerfil = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !isAdmin || !formData.slug) return;
+    if (!file || !formData.slug) return;
     setUploadingPerfil(true);
     try {
-      const fileName = `perfil/${formData.slug}-${Date.now()}.${file.name.split(".").pop()}`;
+      const fileName = `${formData.slug}/perfil-${Date.now()}.${file.name.split(".").pop()}`;
       const { error } = await supabase.storage
         .from("molduras")
         .upload(fileName, file);
@@ -155,7 +155,7 @@ export default function CandidatoModal({
     tipo: "stories" | "feed" | "perfil",
   ) => {
     const file = e.target.files?.[0];
-    if (!file || !isAdmin || !formData.slug) return;
+    if (!file || !formData.slug) return;
 
     const key = `${index}-${tipo}`;
     setUploadingMoldura(key);
@@ -221,9 +221,21 @@ export default function CandidatoModal({
       const primeiraMoldura = molduras[0] || MOLDURA_VAZIA;
 
       const payload = {
-        ...formData,
-        id: candidato?.id,
-        user_id: candidato?.user_id || user?.id,
+        nome_urna: formData.nome_urna,
+        slug: formData.slug,
+        partido: formData.partido,
+        numero_partido: formData.numero_partido,
+        numero_candidato: formData.numero_candidato,
+        url_foto_perfil: formData.url_foto_perfil,
+        cargo_id: formData.cargo_id,
+        cor_primaria: formData.cor_primaria,
+        cor_fundo: formData.cor_fundo,
+        cor_titulo: formData.cor_titulo,
+        cor_texto: formData.cor_texto,
+        cor_texto_hero: formData.cor_texto_hero,
+        cor_botao: formData.cor_botao,
+        ativo: formData.ativo,
+        ...(!candidato ? { user_id: user?.id } : {}),
         // O cargo do candidato também é o slot que fica travado na colinha.
         cargo_travado_id: formData.cargo_id,
         // Retrocompatibilidade: mantém colunas antigas com a primeira moldura
@@ -233,7 +245,9 @@ export default function CandidatoModal({
         molduras: molduras.filter((m) => m.stories || m.feed || m.perfil),
       };
 
-      const { error } = await supabase.from("candidatos").upsert(payload);
+      const { error } = candidato
+        ? await supabase.from("candidatos").update(payload).eq("id", candidato.id)
+        : await supabase.from("candidatos").insert(payload);
       if (error) throw error;
       onRefresh();
       onClose();
@@ -285,8 +299,7 @@ export default function CandidatoModal({
                   ) : (
                     <User className="text-slate-300" size={40} />
                   )}
-                  {isAdmin && (
-                    <label className="absolute inset-0 bg-blue-600/90 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 rounded-full">
+                  <label className="absolute inset-0 bg-blue-600/90 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 rounded-full">
                       <input
                         type="file"
                         hidden
@@ -298,8 +311,7 @@ export default function CandidatoModal({
                       <span className="text-white text-[8px] font-black uppercase text-center px-2">
                         {uploadingPerfil ? "..." : "Enviar"}
                       </span>
-                    </label>
-                  )}
+                  </label>
                 </div>
               </div>
 
@@ -366,7 +378,7 @@ export default function CandidatoModal({
                 icon={<ImageIcon size={14} className="text-blue-500" />}
                 label={`Conjuntos de Molduras (${molduras.length}/${MAX_MOLDURAS})`}
               />
-              {isAdmin && molduras.length < MAX_MOLDURAS && (
+              {molduras.length < MAX_MOLDURAS && (
                 <button
                   onClick={adicionarMoldura}
                   className="flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all"
@@ -396,7 +408,7 @@ export default function CandidatoModal({
                         className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
                       />
                     </div>
-                    {molduras.length > 1 && isAdmin && (
+                    {molduras.length > 1 && (
                       <button
                         onClick={() => removerMoldura(index)}
                         className="shrink-0 p-2 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors text-slate-400"
@@ -439,8 +451,7 @@ export default function CandidatoModal({
                             ) : (
                               <ImageIcon className="text-slate-300" size={32} />
                             )}
-                            {isAdmin && (
-                              <label className="absolute inset-0 bg-blue-600/90 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-all duration-300">
+                            <label className="absolute inset-0 bg-blue-600/90 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-all duration-300">
                                 <input
                                   type="file"
                                   hidden
@@ -466,8 +477,7 @@ export default function CandidatoModal({
                                     </span>
                                   </>
                                 )}
-                              </label>
-                            )}
+                            </label>
                           </div>
                           {url && (
                             <p className="mt-2 text-[9px] text-slate-400 font-medium text-center truncate w-full px-1">

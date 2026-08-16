@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 import { CandidatoDB } from "@/types/candidato";
 import CandidatoModal from "@/components/admin/CandidatoModal";
 import LeadsTable from "@/components/admin/LeadsTable";
-import CreateUserModal from "@/components/admin/CreateUserModal";
 import {
   LayoutDashboard,
   Users,
@@ -18,7 +17,7 @@ import {
   Loader2,
   Download,
   User,
-  UserPlus,
+  UserCog,
   ExternalLink,
   CheckCircle2,
   XCircle,
@@ -32,20 +31,16 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"stats" | "leads">("stats");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("ativos");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [selectedCandidato, setSelectedCandidato] =
     useState<CandidatoDB | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdminGeral, setIsAdminGeral] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const carregarDados = useCallback(async () => {
     try {
       const { data: authData } = await supabase.auth.getUser();
       const userId = authData.user?.id;
       if (!userId) return;
-      setCurrentUserId(userId);
-
       const { data: adminCheck } = await supabase.rpc("is_admin", {
         uid: userId,
       });
@@ -55,9 +50,9 @@ export default function AdminDashboard() {
         .from("candidatos")
         .select("*")
         .order("created_at", { ascending: false });
-      const finalQuery = adminCheck ? query : query.eq("user_id", userId);
 
-      const { data, error } = await finalQuery;
+      // O RLS limita gestores aos candidatos presentes em candidato_admins.
+      const { data, error } = await query;
       if (!error && data) setCandidatos(data);
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
@@ -103,11 +98,6 @@ export default function AdminDashboard() {
     { views: 0, leads: 0, shares: 0, downloads: 0 },
   );
 
-  const slugsCandidatos = candidatos.map((c) => ({
-    slug: c.slug,
-    nome_urna: c.nome_urna,
-  }));
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900">
       {/* SIDEBAR */}
@@ -133,8 +123,7 @@ export default function AdminDashboard() {
           />
         </nav>
 
-        {isAdminGeral && (
-          <div className="px-4 mt-1">
+        <div className="px-4 mt-1">
             <a
               href="/admin/colinha"
               className="flex items-center gap-4 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all"
@@ -142,23 +131,22 @@ export default function AdminDashboard() {
               <Plus size={18} className="text-blue-500 shrink-0" />
               Configurar Colinha
             </a>
-          </div>
-        )}
+        </div>
 
         <div className="flex-1" />
 
         <div className="p-4 border-t border-slate-100 space-y-1">
           {isAdminGeral && (
-            <button
-              onClick={() => setIsCreateUserOpen(true)}
+            <a
+              href="/admin/usuarios"
               className="flex items-center gap-3 w-full p-4 rounded-2xl text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-blue-50 hover:text-blue-600 transition-all group"
             >
-              <UserPlus
+              <UserCog
                 size={18}
                 className="group-hover:scale-110 transition-transform shrink-0"
               />
-              Criar Acesso
-            </button>
+              Gerenciar Acessos
+            </a>
           )}
           <button
             onClick={handleLogout}
@@ -317,13 +305,6 @@ export default function AdminDashboard() {
           onClose={() => setIsModalOpen(false)}
           onRefresh={carregarDados}
           isAdmin={isAdminGeral}
-        />
-      )}
-      {isCreateUserOpen && (
-        <CreateUserModal
-          slugsCandidatos={slugsCandidatos}
-          onClose={() => setIsCreateUserOpen(false)}
-          onSuccess={carregarDados}
         />
       )}
     </div>

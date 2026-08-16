@@ -113,8 +113,8 @@ export default function LandingPage() {
             </a>
             <span>•</span>
             <p>
-              © {new Date().getFullYear()} Cleyton Santos. Todos os direitos
-              reservados.
+              © {new Date().getFullYear()} Sistema Moldura Digital. Todos os
+              direitos reservados.
             </p>
           </div>
         </div>

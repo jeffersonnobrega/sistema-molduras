@@ -11,14 +11,14 @@ interface CreateUserModalProps {
   onSuccess: () => void;
 }
 
-type Tipo = "admin" | "candidato";
+type AccessType = "admin" | "candidato";
 
 export default function CreateUserModal({
   slugsCandidatos,
   onClose,
   onSuccess,
 }: CreateUserModalProps) {
-  const [tipo, setTipo] = useState<Tipo>("candidato");
+  const [tipo, setTipo] = useState<AccessType>("candidato");
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
   const [slugCandidato, setSlugCandidato] = useState("");
@@ -97,38 +97,23 @@ export default function CreateUserModal({
         </header>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Tipo de acesso */}
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => {
-                setTipo("candidato");
-                setError("");
-              }}
-              className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-[10px] font-black uppercase tracking-widest ${
-                tipo === "candidato"
-                  ? "border-blue-600 bg-blue-50 text-blue-700"
-                  : "border-slate-200 text-slate-400 hover:border-slate-300"
-              }`}
+              onClick={() => setTipo("candidato")}
+              className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 text-[10px] font-black uppercase ${tipo === "candidato" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-400"}`}
             >
-              <User size={20} />
-              Candidato
+              <User size={20} /> Gestor de candidato
             </button>
             <button
               type="button"
               onClick={() => {
                 setTipo("admin");
                 setSlugCandidato("");
-                setError("");
               }}
-              className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-[10px] font-black uppercase tracking-widest ${
-                tipo === "admin"
-                  ? "border-blue-600 bg-blue-50 text-blue-700"
-                  : "border-slate-200 text-slate-400 hover:border-slate-300"
-              }`}
+              className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 text-[10px] font-black uppercase ${tipo === "admin" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-400"}`}
             >
-              <ShieldCheck size={20} />
-              Admin Geral
+              <ShieldCheck size={20} /> Admin geral
             </button>
           </div>
 
@@ -169,8 +154,7 @@ export default function CreateUserModal({
           </div>
 
           {/* Vinculação ao candidato (só para tipo candidato) */}
-          {tipo === "candidato" && (
-            <div className="space-y-1">
+          {tipo === "candidato" && <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">
                 Vincular ao Candidato
               </label>
@@ -190,8 +174,7 @@ export default function CreateUserModal({
                   </option>
                 ))}
               </select>
-            </div>
-          )}
+          </div>}
 
           {/* Feedback */}
           {error && (
