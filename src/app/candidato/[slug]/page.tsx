@@ -338,7 +338,7 @@ export default async function CandidatoPage({ params }: PageProps) {
                 nome_urna: candidato.nome_urna,
                 numero_candidato: candidato.numero_candidato,
                 url_foto_perfil: candidato.url_foto_perfil,
-                cargo_travado_id: candidato.cargo_travado_id,
+                cargo_id: candidato.cargo_id,
                 partido: candidato.partido, // ← corrige erro TypeScript 2741
               }}
               config={{

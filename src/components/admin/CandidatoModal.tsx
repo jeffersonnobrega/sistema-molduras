@@ -224,6 +224,8 @@ export default function CandidatoModal({
         ...formData,
         id: candidato?.id,
         user_id: candidato?.user_id || user?.id,
+        // O cargo do candidato também é o slot que fica travado na colinha.
+        cargo_travado_id: formData.cargo_id,
         // Retrocompatibilidade: mantém colunas antigas com a primeira moldura
         url_moldura: primeiraMoldura.stories || "",
         url_moldura_feed: primeiraMoldura.feed || "",

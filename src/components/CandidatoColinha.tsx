@@ -10,7 +10,7 @@ interface CandidatoData {
   nome_urna: string;
   numero_candidato: string;
   url_foto_perfil: string;
-  cargo_travado_id: string;
+  cargo_id: string;
   partido: string;
 }
 
@@ -129,7 +129,7 @@ export default function CandidatoColinha({
         (item) => item.nome.toUpperCase() === nomeCargo.toUpperCase(),
       );
       if (!c) return null;
-      if (c.id === candidatoData.cargo_travado_id)
+      if (c.id === candidatoData.cargo_id)
         return candidatoData.numero_candidato;
       const travado = itensTravados.find(
         (t) => t.cargo_nome.toUpperCase() === nomeCargo.toUpperCase(),
@@ -269,9 +269,7 @@ export default function CandidatoColinha({
 
         <div className="space-y-4 relative z-10">
           {cargos.map((cargo) => {
-            const isDonoPagina =
-              cargo.id === candidatoData.cargo_travado_id ||
-              cargo.nome.toUpperCase() === "DEPUTADO FEDERAL";
+            const isDonoPagina = cargo.id === candidatoData.cargo_id;
 
             const parceiro = itensTravados.find(
               (t) => t.cargo_nome.toUpperCase() === cargo.nome.toUpperCase(),
