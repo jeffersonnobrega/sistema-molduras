@@ -309,7 +309,7 @@ export default function CandidatoColinha({
                     : ""
                 }`}
               >
-                <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
                   <label
                     className={`text-[9px] font-black uppercase tracking-wider ${isLocked ? "text-blue-600" : "text-slate-400"}`}
                   >
@@ -322,8 +322,8 @@ export default function CandidatoColinha({
                     )}
                   </label>
                   {!isLocked && (
-                    <span className="text-[8px] text-slate-300 font-bold uppercase">
-                      {cargo.digitos} dígitos
+                    <span className="text-[8px] text-slate-300 font-bold uppercase whitespace-nowrap">
+                      · {cargo.digitos} dígitos
                     </span>
                   )}
                 </div>
