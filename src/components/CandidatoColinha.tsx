@@ -2,8 +2,42 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { toPng } from "html-to-image";
-import { CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { CheckCircle2, Download, Image as ImageIcon, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+
+interface IosSavePayload {
+  dataUrl: string;
+  file: File;
+}
+
+const isIosDevice = () => {
+  if (typeof navigator === "undefined") return false;
+
+  return (
+    /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+};
+
+const dataUrlToPngFile = async (dataUrl: string, filename: string) => {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  return new File([blob], filename, { type: "image/png" });
+};
+
+const downloadFile = (file: File) => {
+  const objectUrl = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = file.name;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  // O Safari pode consumir o Blob alguns instantes depois do clique.
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+};
 
 interface CandidatoData {
   id: string;
@@ -43,6 +77,9 @@ export default function CandidatoColinha({
   const [presidenteData, setPresidenteData] = useState<any>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isIosSaving, setIsIosSaving] = useState(false);
+  const [iosSavePayload, setIosSavePayload] =
+    useState<IosSavePayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const carregarColinhaRelacional = useCallback(async () => {
@@ -129,7 +166,7 @@ export default function CandidatoColinha({
     });
   };
 
-  const salvarDadosColinha = async (dataUrl: string) => {
+  const salvarDadosColinha = async () => {
     if (!config.lead_id) return;
 
     const pegarNumeroFinal = (nomeCargo: string) => {
@@ -179,15 +216,57 @@ export default function CandidatoColinha({
     setIsExporting(true);
     try {
       const dataUrl = await gerarPng();
-      const link = document.createElement("a");
-      link.download = `colinha-${candidatoData.nome_urna.toLowerCase()}.png`;
-      link.href = dataUrl;
-      link.click();
-      await salvarDadosColinha(dataUrl);
+      const filename = `colinha-${candidatoData.nome_urna.toLowerCase()}.png`;
+      const file = await dataUrlToPngFile(dataUrl, filename);
+
+      if (isIosDevice()) {
+        // O iOS não permite que um site grave diretamente no app Fotos.
+        // Um segundo toque mantém a ativação exigida pelo Web Share API.
+        setIosSavePayload({ dataUrl, file });
+      } else {
+        downloadFile(file);
+        await salvarDadosColinha();
+      }
     } catch (err) {
       console.error("Erro na exportação:", err);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleIosSave = async () => {
+    if (!iosSavePayload || isIosSaving) return;
+    setIsIosSaving(true);
+
+    try {
+      const canShareFile =
+        typeof navigator.share === "function" &&
+        (!navigator.canShare ||
+          navigator.canShare({ files: [iosSavePayload.file] }));
+
+      if (canShareFile) {
+        await navigator.share({
+          files: [iosSavePayload.file],
+          title: "Salvar minha colinha",
+        });
+      } else {
+        const objectUrl = URL.createObjectURL(iosSavePayload.file);
+        const previewWindow = window.open(objectUrl, "_blank");
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+        if (!previewWindow) {
+          throw new Error("O Safari bloqueou a abertura da imagem.");
+        }
+        previewWindow.opener = null;
+      }
+
+      await salvarDadosColinha();
+      setIosSavePayload(null);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error("Erro ao salvar a colinha no iPhone:", err);
+      }
+    } finally {
+      setIsIosSaving(false);
     }
   };
 
@@ -203,15 +282,9 @@ export default function CandidatoColinha({
     try {
       const dataUrl = await gerarPng();
 
-      // Converte dataUrl em Blob/File para o Web Share API
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const file = new File(
-        [blob],
+      const file = await dataUrlToPngFile(
+        dataUrl,
         `colinha-${candidatoData.nome_urna.toLowerCase()}.png`,
-        {
-          type: "image/png",
-        },
       );
 
       const urlAtual =
@@ -437,6 +510,69 @@ export default function CandidatoColinha({
           {isSharing ? "Abrindo..." : "💬 Compartilhar no WhatsApp"}
         </button>
       </div>
+
+      {iosSavePayload && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ios-save-title"
+        >
+          <div className="relative w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setIosSavePayload(null)}
+              disabled={isIosSaving}
+              className="absolute right-3 top-3 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+              aria-label="Fechar"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="pr-10">
+              <h3
+                id="ios-save-title"
+                className="text-lg font-black uppercase tracking-tight text-slate-900"
+              >
+                Salvar no iPhone
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                Toque no botão abaixo e, no menu do iPhone, escolha
+                <strong className="text-slate-700"> Salvar Imagem</strong>.
+              </p>
+            </div>
+
+            <div className="my-4 max-h-72 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={iosSavePayload.dataUrl}
+                alt="Prévia da colinha pronta para salvar"
+                className="h-full max-h-72 w-full object-contain"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleIosSave}
+              disabled={isIosSaving}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-4 text-xs font-black uppercase tracking-widest text-white transition active:scale-95 disabled:opacity-50"
+            >
+              <Download size={17} />
+              {isIosSaving ? "Abrindo opções..." : "Salvar Imagem"}
+            </button>
+
+            <a
+              href={iosSavePayload.dataUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => void salvarDadosColinha()}
+              className="mt-3 block text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 underline underline-offset-4"
+            >
+              Se não abrir, visualizar a imagem
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

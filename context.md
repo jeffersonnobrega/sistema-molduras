@@ -119,3 +119,12 @@ Regra de Ouro: Nunca exponha a SERVICE_ROLE_KEY no front-end. Use apenas a ANON_
 [x] Sprint 3: Segurança, Performance & Refactoring (OK)
 
 [ ] Sprint 4: Multi-Candidato Dinâmico (EM ANDAMENTO)
+
+## 8. Especificação de Segurança
+
+O plano completo de hardening, com prioridades, checklist, critérios de aceite,
+estado confirmado das RLS e consultas de validação, está em
+`SECURITY_HARDENING_SPEC.md`.
+
+Esse arquivo deve ser atualizado sempre que uma medida de segurança for
+implementada ou validada no Supabase e na aplicação.
