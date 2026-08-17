@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   Upload,
   Trash2,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -322,6 +323,11 @@ export default function AdminColinhaVisual() {
     (c) => c.id === selectedCandidatoId,
   );
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+
   if (loadingListas) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center gap-3 font-sans">
@@ -336,7 +342,7 @@ export default function AdminColinhaVisual() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row font-sans text-slate-900">
       {/* SIDEBAR TOTALMENTE CORRIGIDA E SINCRONIZADA */}
-      <aside className="w-full md:w-72 bg-white border-r border-slate-200 flex flex-col p-8 shrink-0">
+      <aside className="w-full md:w-72 bg-white border-r border-slate-200 flex flex-col p-8 shrink-0 md:h-screen md:sticky md:top-0">
         <h1 className="text-xl font-black uppercase tracking-tighter text-slate-800 mb-8">
           SIND <span className="text-blue-600">ADMIN</span>
         </h1>
@@ -351,7 +357,7 @@ export default function AdminColinhaVisual() {
 
           {/* Aba de leads agora presente! Passa parâmetro via url para ativar ao carregar o dashboard */}
           <Link
-            href="/admin?tab=leads"
+            href="/admin/dashboard?tab=leads"
             className="flex items-center gap-4 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all"
           >
             <Users size={18} /> Base de Leads
@@ -362,6 +368,22 @@ export default function AdminColinhaVisual() {
             <Lock size={18} /> Configurar Colinha
           </div>
         </nav>
+
+        <div className="flex-1" />
+
+        <div className="mt-8 border-t border-slate-100 pt-4">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full p-4 rounded-2xl text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-red-50 hover:text-red-600 transition-all group"
+          >
+            <LogOut
+              size={18}
+              className="group-hover:translate-x-1 transition-transform shrink-0"
+            />
+            Sair do Sistema
+          </button>
+        </div>
       </aside>
 
       {/* ÁREA PRINCIPAL */}

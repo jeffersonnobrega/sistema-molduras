@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { CandidatoDB } from "@/types/candidato";
 import CandidatoModal from "@/components/admin/CandidatoModal";
@@ -27,8 +28,19 @@ import {
 type FilterStatus = "ativos" | "inativos" | "todos";
 
 export default function AdminDashboard() {
+  return (
+    <Suspense fallback={<AdminDashboardLoading />}>
+      <AdminDashboardContent />
+    </Suspense>
+  );
+}
+
+function AdminDashboardContent() {
+  const searchParams = useSearchParams();
   const [candidatos, setCandidatos] = useState<CandidatoDB[]>([]);
-  const [activeTab, setActiveTab] = useState<"stats" | "leads">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "leads">(
+    searchParams.get("tab") === "leads" ? "leads" : "stats",
+  );
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("ativos");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCandidato, setSelectedCandidato] =
@@ -64,6 +76,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     carregarDados();
   }, [carregarDados]);
+
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") === "leads" ? "leads" : "stats");
+  }, [searchParams]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -307,6 +323,14 @@ export default function AdminDashboard() {
           isAdmin={isAdminGeral}
         />
       )}
+    </div>
+  );
+}
+
+function AdminDashboardLoading() {
+  return (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+      <Loader2 className="animate-spin text-blue-600" size={32} />
     </div>
   );
 }
