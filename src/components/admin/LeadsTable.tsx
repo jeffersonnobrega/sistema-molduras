@@ -34,12 +34,14 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   /* ===============================
      CARREGAR LEADS WITH JOIN
   ================================ */
   const carregarLeads = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       // ✅ Modificado o select para trazer as informações da tabela candidatos via FK
       let query = supabase
@@ -70,6 +72,11 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
       setLeads((data as unknown as Lead[]) || []);
     } catch (error) {
       console.error("Erro ao carregar leads:", error);
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar os leads.",
+      );
     } finally {
       setLoading(false);
     }
@@ -136,6 +143,23 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
         <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
           Consultando Banco de Dados...
         </p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-8 text-center space-y-3">
+        <p className="text-sm font-black text-red-600 uppercase">
+          Erro ao carregar leads
+        </p>
+        <p className="text-xs text-slate-500 break-words">{loadError}</p>
+        <button
+          onClick={carregarLeads}
+          className="px-4 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }

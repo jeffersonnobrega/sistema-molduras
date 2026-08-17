@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase, supabaseAuth } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 
@@ -12,6 +12,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const reason = new URLSearchParams(window.location.search).get("reason");
+    if (reason === "inactive") {
+      setError("Sessão encerrada após 30 minutos sem atividade.");
+    } else if (reason === "expired") {
+      setError("Sessão encerrada após atingir o limite de 8 horas.");
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
