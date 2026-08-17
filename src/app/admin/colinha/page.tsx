@@ -9,6 +9,9 @@ import {
   Unlock,
   Loader2,
   Save,
+  Image as ImageIcon,
+  Upload,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -29,6 +32,9 @@ export default function AdminColinhaVisual() {
   const [loadingListas, setLoadingListas] = useState(true);
   const [loadingColinha, setLoadingColinha] = useState(false);
   const [isSavingGeral, setIsSavingGeral] = useState(false);
+  const [uploadingFotoCargo, setUploadingFotoCargo] = useState<string | null>(
+    null,
+  );
 
   // 1. CARGA INICIAL
   useEffect(() => {
@@ -40,7 +46,7 @@ export default function AdminColinhaVisual() {
           supabase
             .from("candidatos")
             .select(
-              "id, nome_urna, partido, numero_candidato, cargo_id, url_foto_perfil",
+              "id, slug, nome_urna, partido, numero_candidato, cargo_id, url_foto_perfil",
             )
             .order("nome_urna", { ascending: true }),
           supabase
@@ -135,6 +141,8 @@ export default function AdminColinhaVisual() {
         nome_urna: "",
         partido: candidatoSelecionadoObj?.partido || "",
         numero: "",
+        url_foto: null,
+        status_foto: "sem_foto",
       };
       setTravados((prev) => [...prev, novoSlotLocal]);
     }
@@ -151,6 +159,82 @@ export default function AdminColinhaVisual() {
         t.cargo_nome.toUpperCase() === cargoNome.toUpperCase()
           ? { ...t, [campo]: valor }
           : t,
+      ),
+    );
+  };
+
+  const handleUploadFotoGovernador = async (
+    cargoNome: string,
+    file: File,
+  ) => {
+    if (!candidatoSelecionadoObj?.slug) {
+      alert("Não foi possível identificar a pasta do candidato.");
+      return;
+    }
+
+    const tiposPermitidos: Record<string, string> = {
+      "image/png": "png",
+      "image/jpeg": "jpg",
+      "image/webp": "webp",
+    };
+    const extensao = tiposPermitidos[file.type];
+    if (!extensao) {
+      alert("Envie uma imagem PNG, JPG ou WEBP.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert("A foto deve ter no máximo 10 MB.");
+      return;
+    }
+
+    setUploadingFotoCargo(cargoNome);
+    try {
+      const nomeCargoSeguro = cargoNome
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      const caminho = `${candidatoSelecionadoObj.slug}/colinha/${nomeCargoSeguro}-${Date.now()}.${extensao}`;
+      const { error } = await supabase.storage
+        .from("molduras")
+        .upload(caminho, file, {
+          cacheControl: "3600",
+          contentType: file.type,
+          upsert: false,
+        });
+      if (error) throw error;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("molduras").getPublicUrl(caminho);
+
+      setTravados((prev) =>
+        prev.map((item) =>
+          item.cargo_nome.toUpperCase() === cargoNome.toUpperCase()
+            ? {
+                ...item,
+                url_foto: publicUrl,
+                status_foto: "aprovada",
+              }
+            : item,
+        ),
+      );
+    } catch (err) {
+      const mensagem = err instanceof Error ? err.message : "Erro desconhecido";
+      console.error("Erro ao enviar foto do governador:", err);
+      alert(`Erro ao enviar a foto: ${mensagem}`);
+    } finally {
+      setUploadingFotoCargo(null);
+    }
+  };
+
+  const handleRemoverFotoGovernador = (cargoNome: string) => {
+    setTravados((prev) =>
+      prev.map((item) =>
+        item.cargo_nome.toUpperCase() === cargoNome.toUpperCase()
+          ? { ...item, url_foto: null, status_foto: "sem_foto" }
+          : item,
       ),
     );
   };
@@ -334,6 +418,8 @@ export default function AdminColinhaVisual() {
                   (cargo) => cargo.nome?.trim().toLowerCase() !== "presidente",
                 )
                 .map((cargo) => {
+                  const isGovernador =
+                    cargo.nome?.trim().toLowerCase() === "governador";
                   const isDonoDoSite =
                     candidatoSelecionadoObj &&
                     cargo.id === candidatoSelecionadoObj.cargo_id;
@@ -443,6 +529,97 @@ export default function AdminColinhaVisual() {
                           </div>
                         </div>
                       </div>
+
+                      {isGovernador && !isDonoDoSite && (
+                          <div className="flex flex-col gap-3 border-t border-blue-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm">
+                                {travadoObj?.url_foto ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={travadoObj.url_foto}
+                                    alt={`Foto de ${travadoObj.nome_urna || "governador"}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <ImageIcon
+                                    size={18}
+                                    className="text-slate-300"
+                                  />
+                                )}
+                              </div>
+
+                              <div className="min-w-0">
+                                <span className="block text-[8px] font-black uppercase tracking-wider text-slate-400">
+                                  Foto opcional do governador
+                                </span>
+                                <span className="block truncate text-[10px] font-bold text-slate-600">
+                                  {isTravado
+                                    ? "Só será exibida na colinha quando houver foto."
+                                    : "Trave o slot de Governador para enviar a foto."}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <label
+                                className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[9px] font-black uppercase tracking-wider text-slate-600 transition hover:border-blue-300 hover:text-blue-600 ${
+                                  uploadingFotoCargo === cargo.nome
+                                    ? "pointer-events-none opacity-50"
+                                    : !isTravado
+                                      ? "pointer-events-none opacity-40"
+                                    : ""
+                                }`}
+                              >
+                                {uploadingFotoCargo === cargo.nome ? (
+                                  <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                  <Upload size={13} />
+                                )}
+                                {uploadingFotoCargo === cargo.nome
+                                  ? "Enviando"
+                                  : travadoObj?.url_foto
+                                    ? "Trocar foto"
+                                    : isTravado
+                                      ? "Enviar foto"
+                                      : "Trave para enviar"}
+                                <input
+                                  type="file"
+                                  accept="image/png,image/jpeg,image/webp"
+                                  className="hidden"
+                                  disabled={
+                                    !isTravado ||
+                                    uploadingFotoCargo === cargo.nome
+                                  }
+                                  onChange={(event) => {
+                                    const file = event.target.files?.[0];
+                                    event.target.value = "";
+                                    if (file) {
+                                      void handleUploadFotoGovernador(
+                                        cargo.nome,
+                                        file,
+                                      );
+                                    }
+                                  }}
+                                />
+                              </label>
+
+                              {travadoObj?.url_foto && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleRemoverFotoGovernador(cargo.nome)
+                                  }
+                                  disabled={uploadingFotoCargo === cargo.nome}
+                                  className="rounded-xl border border-red-100 bg-white p-2.5 text-red-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                  aria-label="Remover foto do governador"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
                     </div>
                   );

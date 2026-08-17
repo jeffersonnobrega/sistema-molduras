@@ -11,6 +11,7 @@ import CandidatoColinha from "@/components/CandidatoColinha";
 import CookieBanner from "@/components/CookieBanner";
 import ViewCounter from "@/components/ViewCounter";
 import StatsCounter from "@/components/StatsCounter";
+import CandidateProfilePhoto from "@/components/CandidateProfilePhoto";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -130,46 +131,37 @@ export default async function CandidatoPage({ params }: PageProps) {
         }}
       >
         <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
-          {/* Avatar + nome + número — link para o topo */}
-          <a
-            href="#criar"
-            className="flex items-center gap-3 group cursor-pointer min-w-0"
-          >
-            {/* Avatar: foto ou círculo colorido */}
-            <div
-              className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/60 shadow-md shrink-0 transition-transform group-hover:scale-105 flex items-center justify-center"
-              style={{ backgroundColor: candidato.cor_primaria }}
-            >
-              {candidato.url_foto_perfil && (
-                <Image
-                  src={candidato.url_foto_perfil}
-                  alt={candidato.nome_urna}
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                  unoptimized
-                />
-              )}
-            </div>
+          {/* A foto amplia; nome e número continuam levando ao editor. */}
+          <div className="flex min-w-0 items-center gap-3">
+            <CandidateProfilePhoto
+              src={candidato.url_foto_perfil}
+              nome={candidato.nome_urna}
+              numero={candidato.numero_candidato}
+              corPrimaria={candidato.cor_primaria}
+            />
 
-            {/* Nome + número */}
-            <div className="flex flex-col leading-none min-w-0">
-              <span
-                className="font-black text-base uppercase italic tracking-tighter transition-opacity group-hover:opacity-75 leading-tight truncate"
-                style={{ color: theme.nav.logoText }}
-              >
-                {candidato.nome_urna}
-              </span>
-              {candidato.numero_candidato && (
+            <a
+              href="#criar"
+              className="group flex min-w-0 flex-col leading-none"
+            >
+              <div className="flex flex-col leading-none min-w-0">
                 <span
-                  className="text-[11px] font-bold tabular-nums tracking-widest opacity-60 mt-0.5"
+                  className="truncate text-base font-black uppercase italic leading-tight tracking-tighter transition-opacity group-hover:opacity-75"
                   style={{ color: theme.nav.logoText }}
                 >
-                  Nº {candidato.numero_candidato}
+                  {candidato.nome_urna}
                 </span>
-              )}
-            </div>
-          </a>
+                {candidato.numero_candidato && (
+                  <span
+                    className="mt-0.5 text-[11px] font-bold tabular-nums tracking-widest opacity-60"
+                    style={{ color: theme.nav.logoText }}
+                  >
+                    Nº {candidato.numero_candidato}
+                  </span>
+                )}
+              </div>
+            </a>
+          </div>
 
           {COLINHA_ENABLED && (
             <a

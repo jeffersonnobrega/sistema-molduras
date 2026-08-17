@@ -283,6 +283,8 @@ export default function CandidatoColinha({
         <div className="space-y-4 relative z-10">
           {cargos.map((cargo) => {
             const isDonoPagina = cargo.id === candidatoData.cargo_id;
+            const isGovernador =
+              cargo.nome?.trim().toUpperCase() === "GOVERNADOR";
 
             const parceiro = itensTravados.find(
               (t) => t.cargo_nome.toUpperCase() === cargo.nome.toUpperCase(),
@@ -303,7 +305,11 @@ export default function CandidatoColinha({
                 : nomesDigitados[cargo.id] || "";
             const fotoExibida = isDonoPagina
               ? candidatoData.url_foto_perfil
-              : null;
+              : isGovernador && isTravadoPeloAdmin
+                ? parceiro.url_foto
+                : null;
+            const deveExibirFoto =
+              isDonoPagina || (isGovernador && Boolean(fotoExibida));
 
             return (
               <div
@@ -343,7 +349,7 @@ export default function CandidatoColinha({
                         <span className="text-[11px] font-black text-slate-700 text-right uppercase block truncate">
                           {nomeExibido}
                         </span>
-                        {isDonoPagina && (
+                        {deveExibirFoto && (
                           <div className="w-7 h-7 bg-white border border-slate-200 rounded-full overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
                             {fotoExibida ? (
                               // eslint-disable-next-line @next/next/no-img-element
