@@ -43,33 +43,12 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
     setLoading(true);
     setLoadError("");
     try {
-      // ✅ Modificado o select para trazer as informações da tabela candidatos via FK
-      let query = supabase
-        .from("leads")
-        .select(
-          `
-          id,
-          nome,
-          whatsapp,
-          candidato_slug,
-          created_at,
-          candidatos (
-            nome_urna,
-            url_foto_perfil
-          )
-        `,
-        )
-        .order("created_at", { ascending: false });
-
-      // Se houver slug → candidato vê só os dele
-      if (slug) {
-        query = query.eq("candidato_slug", slug);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await supabase.rpc("get_accessible_leads", {
+        target_slug: slug || null,
+      });
       if (error) throw error;
 
-      setLeads((data as unknown as Lead[]) || []);
+      setLeads(Array.isArray(data) ? (data as Lead[]) : []);
     } catch (error) {
       console.error("Erro ao carregar leads:", error);
       setLoadError(
