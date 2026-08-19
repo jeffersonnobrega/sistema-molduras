@@ -128,3 +128,15 @@ estado confirmado das RLS e consultas de validação, está em
 
 Esse arquivo deve ser atualizado sempre que uma medida de segurança for
 implementada ou validada no Supabase e na aplicação.
+
+## 9. Regra Operacional do SQL Editor do Supabase
+
+Neste projeto, o SQL Editor usado pelo responsável executa apenas uma instrução
+por vez. Não entregar fluxos que dependam de executar `BEGIN`, comandos
+intermediários e `COMMIT`/`ROLLBACK` separadamente, pois eles podem usar
+execuções distintas e deixar alterações persistidas.
+
+Quando várias operações precisarem ser atômicas, entregar uma única instrução
+executável, preferencialmente um bloco `DO $$ ... $$`. Consultas de validação
+somente leitura podem continuar separadas. Sempre informar o impacto antes de
+qualquer instrução que altere dados, funções, políticas, triggers ou privilégios.

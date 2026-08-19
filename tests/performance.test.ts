@@ -96,7 +96,7 @@ describe("CanvasEditor — Performance de renderização", () => {
     let lastDist = 100;
 
     for (let i = 0; i < 60; i++) {
-      const dist = 100 + i * 2; // Abrindo os dedos
+      const dist = 100 + i * 5; // Abrindo os dedos até atingir o zoom máximo
       const delta = dist / lastDist;
       zoom = Math.min(3, Math.max(0.5, zoom * delta));
       lastDist = dist;

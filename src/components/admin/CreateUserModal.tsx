@@ -21,7 +21,7 @@ export default function CreateUserModal({
   const [tipo, setTipo] = useState<AccessType>("candidato");
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
-  const [slugCandidato, setSlugCandidato] = useState("");
+  const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -35,8 +35,8 @@ export default function CreateUserModal({
       setError("Email e nome são obrigatórios.");
       return;
     }
-    if (tipo === "candidato" && !slugCandidato) {
-      setError("Selecione o candidato a vincular.");
+    if (tipo === "candidato" && selectedSlugs.length === 0) {
+      setError("Selecione ao menos um candidato para vincular.");
       return;
     }
 
@@ -57,7 +57,8 @@ export default function CreateUserModal({
           email: email.trim().toLowerCase(),
           nome: nome.trim(),
           tipo,
-          slug_candidato: tipo === "candidato" ? slugCandidato : undefined,
+          slug_candidatos:
+            tipo === "candidato" ? selectedSlugs : undefined,
         }),
       });
 
@@ -109,7 +110,7 @@ export default function CreateUserModal({
               type="button"
               onClick={() => {
                 setTipo("admin");
-                setSlugCandidato("");
+                setSelectedSlugs([]);
               }}
               className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 text-[10px] font-black uppercase ${tipo === "admin" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-400"}`}
             >
@@ -153,27 +154,40 @@ export default function CreateUserModal({
             />
           </div>
 
-          {/* Vinculação ao candidato (só para tipo candidato) */}
-          {tipo === "candidato" && <div className="space-y-1">
+          {/* Vínculos do gestor com um ou mais candidatos */}
+          {tipo === "candidato" && <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">
-                Vincular ao Candidato
+                Vincular aos candidatos
               </label>
-              <select
-                value={slugCandidato}
-                disabled={loading}
-                onChange={(e) => {
-                  setSlugCandidato(e.target.value);
-                  setError("");
-                }}
-                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 font-bold text-slate-700 text-sm disabled:opacity-50 transition-all"
-              >
-                <option value="">Selecione o candidato...</option>
+              <div className="max-h-48 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-2 space-y-1">
                 {slugsCandidatos.map((c) => (
-                  <option key={c.slug} value={c.slug}>
-                    {c.nome_urna} · /{c.slug}
-                  </option>
+                  <label
+                    key={c.slug}
+                    className="flex items-center gap-3 rounded-xl bg-white px-3 py-3 text-sm font-bold text-slate-700 cursor-pointer hover:bg-blue-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSlugs.includes(c.slug)}
+                      disabled={loading}
+                      onChange={(e) => {
+                        setSelectedSlugs((current) =>
+                          e.target.checked
+                            ? [...current, c.slug]
+                            : current.filter((slug) => slug !== c.slug),
+                        );
+                        setError("");
+                      }}
+                      className="h-4 w-4 accent-blue-600"
+                    />
+                    <span className="min-w-0 truncate">
+                      {c.nome_urna} · /{c.slug}
+                    </span>
+                  </label>
                 ))}
-              </select>
+              </div>
+              <p className="text-[10px] text-slate-400 ml-1">
+                {selectedSlugs.length} candidato(s) selecionado(s)
+              </p>
           </div>}
 
           {/* Feedback */}
@@ -191,7 +205,8 @@ export default function CreateUserModal({
           {/* Info sobre o fluxo */}
           {!success && (
             <p className="text-[10px] text-slate-400 text-center leading-relaxed">
-              O usuário receberá um email com link para definir a senha.
+              Um novo usuário receberá o convite por email. Se o email já
+              existir, apenas os novos candidatos serão vinculados.
             </p>
           )}
 
@@ -216,7 +231,7 @@ export default function CreateUserModal({
                 </>
               ) : (
                 <>
-                  <UserPlus size={14} /> Criar & Convidar
+                  <UserPlus size={14} /> Salvar acesso
                 </>
               )}
             </button>

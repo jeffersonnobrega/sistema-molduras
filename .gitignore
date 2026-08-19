@@ -10,13 +10,10 @@ build/
 dist/
 *.tsbuildinfo
 
-# Variáveis de Ambiente (Segurança Crítica)
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env*.local
+# Variáveis de ambiente e segredos
+.env*
+!.env.example
+!.env.*.example
 
 # Logs e Diagnósticos
 npm-debug.log*
@@ -33,15 +30,26 @@ logs
 .eslintcache
 .stylelintcache
 .next-boost-cache/
+*.tmp
+*.temp
 
 # Infraestrutura e Certificados Locais
-certificates/              
-*.pem                     
-.mkcert/                   
+certificates/
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+.mkcert/
 
-# Supabase (Arquivos locais de CLI se vier a usar)
-.supabase/functions/.env
+# Supabase CLI e segredos locais
 supabase/.temp/
+supabase/.branches/
+supabase/.env*
+!supabase/.env.example
+supabase/functions/.env*
+!supabase/functions/.env.example
 
 # Arquivos de Sistema
 .DS_Store
@@ -62,3 +70,5 @@ desktop.ini
 # Testes
 coverage/
 .nyc_output/
+test-results/
+playwright-report/

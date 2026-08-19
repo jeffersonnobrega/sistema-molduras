@@ -1,6 +1,6 @@
 # Especificação de Hardening de Segurança
 
-Última revisão: 17/08/2026
+Última revisão: 18/08/2026
 
 Checklist oficial de segurança do Sistema Moldura. Atualize os marcadores conforme cada medida for implementada e validada.
 
@@ -11,6 +11,14 @@ Checklist oficial de segurança do Sistema Moldura. Atualize os marcadores confo
 - `[x]` Concluído e validado
 - `[!]` Risco aceito temporariamente
 
+## Regra para queries no Supabase
+
+O SQL Editor utilizado neste projeto executa somente uma instrução por vez.
+Operações que dependam de atomicidade devem ser fornecidas como uma única
+execução, usando `DO $$ ... $$` quando necessário. Não separar `BEGIN`, comandos
+mutáveis e `COMMIT`/`ROLLBACK` em execuções diferentes. Consultas exclusivamente
+de leitura podem ser executadas separadamente.
+
 ## Estado confirmado
 
 - A separação entre superadministradores e gestores de candidatos está ativa.
@@ -18,9 +26,9 @@ Checklist oficial de segurança do Sistema Moldura. Atualize os marcadores confo
 - O RPC de leads limita o gestor aos candidatos vinculados.
 - A escrita de `colinha_config`, `colinha_travados` e Storage verifica o vínculo do candidato.
 - O bucket `molduras` é público, sem limite de tamanho e sem lista de MIME types.
-- `colinhas_salvas` ainda possui uma política pública `ALL` com `USING true`.
+- `colinhas_salvas` foi fechada pela SEC-001; `anon` não possui privilégios e somente superadmin tem política de leitura.
 - `leads` ainda aceita inserção pública com `WITH CHECK true`.
-- Os RPCs de estatísticas ainda possuem execução para `PUBLIC` e `anon`.
+- Os RPCs de estatísticas não possuem mais execução para `PUBLIC`; os quatro incrementos permanecem concedidos explicitamente a `anon` até a SEC-011.
 - A sessão administrativa possui encerramento client-side após 30 minutos de inatividade ou 8 horas de duração absoluta.
 - Nenhum segredo real foi encontrado nos arquivos versionados.
 
@@ -30,7 +38,7 @@ Checklist oficial de segurança do Sistema Moldura. Atualize os marcadores confo
 - [x] Next.js instalado em `16.3.1`, acima da correção mínima `16.2.11`.
 - [x] Reduzir o audit de 6 vulnerabilidades altas para 1 (`xlsx`).
 - [x] Reexecutar o build com Next.js `16.3.1` em 17/08/2026.
-- [ ] Resolver a falha do teste de pinch zoom em `tests/performance.test.ts`.
+- [x] Resolver a falha do teste de pinch zoom em `tests/performance.test.ts`.
 - [ ] Concluir SEC-001 a SEC-011.
 
 ---
@@ -39,16 +47,18 @@ Checklist oficial de segurança do Sistema Moldura. Atualize os marcadores confo
 
 Prioridade: crítica.
 
+Status: [x] Concluída e validada no Supabase em 17/08/2026.
+
 Situação confirmada: `Permitir inserção e leitura pública da colinha` está aplicada ao role `public`, comando `ALL`, com `USING true`. A migração anterior que deveria removê-la não está ativa no banco consultado.
 
 ### Implementação
 
-- [ ] Criar migração emergencial específica.
-- [ ] Remover a política pública `ALL`.
-- [ ] Revogar `SELECT`, `INSERT`, `UPDATE` e `DELETE` de `anon`.
-- [ ] Não criar política pública de `UPDATE` ou `DELETE`.
-- [ ] Manter `INSERT` público desabilitado até SEC-011; o front atualmente envia `lead_id: undefined`.
-- [ ] Criar `SELECT` somente para superadmin com `is_admin(auth.uid())`.
+- [x] Criar migração emergencial específica: `supabase/migrations/20260817_close_colinhas_salvas.sql`.
+- [x] Remover a política pública `ALL`.
+- [x] Revogar `SELECT`, `INSERT`, `UPDATE` e `DELETE` de `anon`.
+- [x] Não criar política pública de `UPDATE` ou `DELETE`.
+- [x] Manter `INSERT` público desabilitado até SEC-011; o front atualmente envia `lead_id: undefined`.
+- [x] Criar `SELECT` somente para superadmin com `is_admin(auth.uid())`.
 
 ### Aceite
 
@@ -62,25 +72,33 @@ Situação confirmada: `Permitir inserção e leitura pública da colinha` está
 
 Prioridade: crítica.
 
+Status: [x] Concluída e validada em 17/08/2026.
+
 - [x] `npm audit fix` instalou `next@16.3.1` no `node_modules` e lockfile.
-- [ ] Atualizar `package.json`, que ainda declara `^16.2.3`.
-- [ ] Alinhar `eslint-config-next` com a versão do Next.js.
+- [x] Fixar `next` em `16.3.1` no `package.json` e lockfile.
+- [x] Alinhar `eslint-config-next` em `16.3.1` com a versão do Next.js.
 - [x] Executar `npm run build` e confirmar `Next.js 16.3.1` no log.
-- [ ] Executar `npm run test:run` e `npm audit --omit=dev`.
-- [ ] Corrigir o aviso de múltiplos lockfiles definindo `turbopack.root` ou removendo somente o lockfile comprovadamente desnecessário.
-- [ ] Migrar `src/middleware.ts` para a convenção `proxy` do Next.js 16.
+- [x] Executar `npm run test:run`: 20 testes aprovados em 17/08/2026.
+- [x] Executar `npm audit --omit=dev`: nenhum advisory do Next.js; resta somente `xlsx`, tratado na SEC-010.
+- [x] Corrigir o aviso de múltiplos lockfiles definindo `turbopack.root`, sem remover arquivos da pasta pai.
+- [x] Migrar `src/middleware.ts` para `src/proxy.ts`, usando a convenção do Next.js 16.
 
 ### Aceite
 
-- Build de produção concluído com `16.3.1` ou superior.
-- Nenhum advisory do Next.js no audit.
-- Login, convite, reset, proteção de `/admin` e logout por inatividade continuam funcionando.
+- [x] Build de produção concluído com `16.3.1`.
+- [x] Nenhum advisory do Next.js no audit.
+- [x] Acesso anônimo a `/admin/dashboard` redireciona para `/login?next=%2Fadmin%2Fdashboard`.
+- [x] Rota pública `/login` responde normalmente.
+- [x] Login autenticado, convite e reset de senha validados.
+- [x] Logout manual e logout após 30 minutos de inatividade/8 horas de duração absoluta validados.
 
 ---
 
 ## SEC-003 — Restringir funções PostgreSQL
 
 Prioridade: crítica.
+
+Status: [x] Concluída e validada no Supabase em 18/08/2026.
 
 No ACL, `=X/postgres` significa execução concedida a `PUBLIC`.
 
@@ -92,32 +110,33 @@ No ACL, `=X/postgres` significa execução concedida a `PUBLIC`.
 
 ### Corrigir
 
-- [ ] `get_leads_count`
-- [ ] `increment_colinha_download`
-- [ ] `increment_leads_count`
-- [ ] `increment_shares_count`
-- [ ] `increment_views_count`
-- [ ] `protect_candidato_system_fields`
-- [ ] `rls_auto_enable`
+- [x] `get_leads_count`
+- [x] `increment_colinha_download`
+- [x] `increment_leads_count`
+- [x] `increment_shares_count`
+- [x] `increment_views_count`
+- [x] `protect_candidato_system_fields`
+- [x] `rls_auto_enable`
 
 ### Implementação
 
-- [ ] Revisar `pg_get_functiondef` antes de substituir qualquer função.
-- [ ] Revogar `EXECUTE` de `PUBLIC` nas funções da aplicação.
-- [ ] Revogar execução de `anon` e `authenticated` em funções de trigger/manutenção.
-- [ ] Manter os incrementos concedidos explicitamente a `anon` apenas enquanto o front depender deles.
-- [ ] Definir `search_path = ''` e qualificar relações, como `public.candidatos`.
-- [ ] Validar candidato existente e ativo antes de incrementar.
-- [ ] Remover `get_leads_count` se estiver sem consumidor.
-- [ ] Verificar se `rls_auto_enable` é usada por event trigger e removê-la da Data API.
-- [ ] Revogar por padrão a execução pública de novas funções.
+- [x] Revisar `pg_get_functiondef` antes de substituir qualquer função.
+- [x] Criar `supabase/migrations/20260818_restrict_postgres_functions.sql`.
+- [x] Revogar `EXECUTE` de `PUBLIC` nas funções da aplicação.
+- [x] Revogar execução de `anon` e `authenticated` em funções de trigger/manutenção.
+- [x] Manter os incrementos concedidos explicitamente a `anon` apenas enquanto o front depender deles.
+- [x] Definir `search_path = ''` e qualificar relações, como `public.candidatos`.
+- [x] Validar candidato existente e ativo antes de incrementar.
+- [x] Remover `get_leads_count` se estiver sem consumidor.
+- [x] Verificar se `rls_auto_enable` é usada por event trigger e removê-la da Data API.
+- [x] Revogar por padrão a execução pública de novas funções.
 
 ### Aceite
 
-- Nenhuma função sensível apresenta `=X` no ACL.
-- Funções administrativas recusam `anon`.
-- Contadores continuam funcionando até SEC-011.
-- O RPC de leads continua funcionando para ambos os tipos de administrador.
+- [x] Nenhuma função sensível apresenta `=X` no ACL.
+- [x] Funções administrativas recusam `anon`.
+- [x] Contadores continuam funcionando até SEC-011.
+- [x] O RPC de leads continua funcionando para ambos os tipos de administrador.
 
 ---
 
@@ -125,23 +144,30 @@ No ACL, `=X/postgres` significa execução concedida a `PUBLIC`.
 
 Prioridade: alta. Mitigação até SEC-011.
 
+Status: [x] Concluída e validada no Supabase e na aplicação em 18/08/2026.
+
 Situação atual: `Leads: Apenas inserção pública` usa `WITH CHECK true`.
 
-- [ ] Exigir candidato existente e ativo.
-- [ ] Exigir nome entre 3 e 120 caracteres.
-- [ ] Exigir WhatsApp normalizado com 10 ou 11 dígitos.
-- [ ] Exigir `lgpd_consent = true`.
-- [ ] Validar `consent_version`.
-- [ ] Adicionar constraints equivalentes diretamente na tabela.
-- [ ] Garantir `created_at` definido pelo banco.
-- [ ] Avaliar FK entre `leads.candidato_slug` e `candidatos.slug`.
-- [ ] Manter `SELECT`, `UPDATE` e `DELETE` indisponíveis para `anon`.
+- [x] Auditar estrutura, constraints, políticas, privilégios e dados existentes.
+- [x] Confirmar suporte a telefones internacionais no padrão E.164.
+- [x] Criar `supabase/migrations/20260818_harden_leads_insert.sql` como uma única execução atômica.
+- [x] Remover o endpoint placeholder `src/app/api/leads/route.ts`, que não participava do fluxo real.
+
+- [x] Exigir candidato existente e ativo.
+- [x] Exigir nome entre 3 e 120 caracteres.
+- [x] Exigir WhatsApp internacional normalizado no padrão E.164, preservando números brasileiros e estrangeiros.
+- [x] Exigir `lgpd_consent = true`.
+- [x] Validar `consent_version`.
+- [x] Adicionar constraints equivalentes diretamente na tabela.
+- [x] Garantir `created_at` definido pelo banco.
+- [x] Avaliar FK entre `leads.candidato_slug` e `candidatos.slug`.
+- [x] Manter `SELECT`, `UPDATE` e `DELETE` indisponíveis para `anon`.
 
 ### Aceite
 
-- Slug inexistente, consentimento falso, telefone inválido e campos excessivos são recusados.
-- O fluxo legítimo continua registrando lead.
-- Visitante não lê, altera ou exclui leads.
+- [x] Slug inexistente, consentimento falso, telefone inválido e campos excessivos são recusados pelas políticas/constraints.
+- [x] O fluxo legítimo continua registrando lead.
+- [x] Visitante não lê, altera ou exclui leads.
 - [!] Bots ainda poderão enviar dados válidos até CAPTCHA e rate limit em SEC-011.
 
 ---
@@ -150,12 +176,25 @@ Situação atual: `Leads: Apenas inserção pública` usa `WITH CHECK true`.
 
 Prioridade: alta.
 
-- [ ] Impedir gestores de alterar `slug`.
-- [ ] Impedir gestores de alterar `ativo`.
-- [ ] Manter protegidos `id`, `user_id`, `created_at` e todos os contadores.
-- [ ] Definir futuros campos comerciais/plano como exclusivos do superadmin.
-- [ ] Manter editáveis nome, número, partido, cargo, cores, fotos, molduras e colinha.
-- [ ] Testar por requisição REST manual, não apenas pela interface.
+Status: [x] Concluída e validada no Supabase e na aplicação em 18/08/2026.
+
+- [x] Impedir gestores de alterar `slug`.
+- [x] Impedir gestores de alterar `ativo`.
+- [x] Manter protegidos `id`, `user_id`, `created_at` e todos os contadores.
+- [x] Definir futuros campos comerciais/plano como exclusivos do superadmin.
+- [x] Manter editáveis nome, número, partido, cargo, cores, fotos, molduras e colinha.
+- [x] Testar por requisição REST manual, não apenas pela interface.
+
+### Implementação preparada
+
+- [x] Criar `supabase/migrations/20260818_protect_candidate_system_fields.sql` como uma única execução atômica.
+- [x] Aplicar a migration e validar função, trigger, `search_path` e ACL no catálogo.
+- [x] Usar lista positiva de campos editáveis para proteger automaticamente futuras colunas.
+- [x] Fazer tentativas indevidas retornarem erro PostgreSQL `42501`.
+- [x] Preservar superadmin e incrementos executados pelas funções `SECURITY DEFINER`.
+- [x] Remover `slug` e `ativo` do payload enviado por gestores no modal.
+- [x] Exibir o controle de ativação somente para superadmin no modal.
+- [x] Documentar validações em `supabase/tests/SEC005_MANUAL_TESTS.md`.
 
 ### Aceite
 

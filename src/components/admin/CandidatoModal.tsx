@@ -71,6 +71,16 @@ export default function CandidatoModal({
   const [molduras, setMolduras] = useState<MolduraSet[]>([
     { ...MOLDURA_VAZIA, label: "Moldura 1" },
   ]);
+  const [pendingStorageDeletes, setPendingStorageDeletes] = useState<string[]>(
+    [],
+  );
+
+  const queueStorageDelete = (url?: string) => {
+    if (!url) return;
+    setPendingStorageDeletes((current) =>
+      current.includes(url) ? current : [...current, url],
+    );
+  };
 
   useEffect(() => {
     supabase
@@ -98,7 +108,7 @@ export default function CandidatoModal({
       });
 
       // Carrega os conjuntos de molduras do JSONB
-      const moldurasExistentes = (candidato as any).molduras as
+      const moldurasExistentes = candidato.molduras as
         | MolduraSet[]
         | undefined;
       if (moldurasExistentes && moldurasExistentes.length > 0) {
@@ -138,9 +148,10 @@ export default function CandidatoModal({
       const {
         data: { publicUrl },
       } = supabase.storage.from("molduras").getPublicUrl(fileName);
+      queueStorageDelete(formData.url_foto_perfil);
       setFormData((prev) => ({ ...prev, url_foto_perfil: publicUrl }));
-    } catch (error: any) {
-      alert("Erro no upload: " + error.message);
+    } catch (error: unknown) {
+      alert("Erro no upload: " + getErrorMessage(error));
     } finally {
       setUploadingPerfil(false);
     }
@@ -158,6 +169,7 @@ export default function CandidatoModal({
     if (!file || !formData.slug) return;
 
     const key = `${index}-${tipo}`;
+    const previousUrl = molduras[index]?.[tipo];
     setUploadingMoldura(key);
 
     try {
@@ -170,13 +182,14 @@ export default function CandidatoModal({
         data: { publicUrl },
       } = supabase.storage.from("molduras").getPublicUrl(fileName);
 
+      queueStorageDelete(previousUrl);
       setMolduras((prev) => {
         const updated = [...prev];
         updated[index] = { ...updated[index], [tipo]: publicUrl };
         return updated;
       });
-    } catch (error: any) {
-      alert("Erro no upload: " + error.message);
+    } catch (error: unknown) {
+      alert("Erro no upload: " + getErrorMessage(error));
     } finally {
       setUploadingMoldura(null);
     }
@@ -195,7 +208,37 @@ export default function CandidatoModal({
 
   const removerMoldura = (index: number) => {
     if (molduras.length <= 1) return;
+    const moldura = molduras[index];
+    if (!window.confirm(`Excluir o conjunto "${moldura.label}"?`)) return;
+    queueStorageDelete(moldura.stories);
+    queueStorageDelete(moldura.feed);
+    queueStorageDelete(moldura.perfil);
     setMolduras((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removerArquivoMoldura = (
+    index: number,
+    tipo: "stories" | "feed" | "perfil",
+  ) => {
+    const url = molduras[index]?.[tipo];
+    if (!url || !window.confirm("Excluir esta moldura?")) return;
+    queueStorageDelete(url);
+    setMolduras((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [tipo]: "" };
+      return updated;
+    });
+  };
+
+  const removerFotoPerfil = () => {
+    if (
+      !formData.url_foto_perfil ||
+      !window.confirm("Excluir a foto de perfil do candidato?")
+    ) {
+      return;
+    }
+    queueStorageDelete(formData.url_foto_perfil);
+    setFormData((prev) => ({ ...prev, url_foto_perfil: "" }));
   };
 
   const atualizarLabel = (index: number, label: string) => {
@@ -220,9 +263,8 @@ export default function CandidatoModal({
       // Pega a primeira moldura para manter retrocompatibilidade nas colunas antigas
       const primeiraMoldura = molduras[0] || MOLDURA_VAZIA;
 
-      const payload = {
+      const payload: Partial<CandidatoDB> = {
         nome_urna: formData.nome_urna,
-        slug: formData.slug,
         partido: formData.partido,
         numero_partido: formData.numero_partido,
         numero_candidato: formData.numero_candidato,
@@ -234,7 +276,11 @@ export default function CandidatoModal({
         cor_texto: formData.cor_texto,
         cor_texto_hero: formData.cor_texto_hero,
         cor_botao: formData.cor_botao,
-        ativo: formData.ativo,
+        // Identidade e status são campos sistêmicos. Gestores não devem nem
+        // enviá-los; o trigger do banco continua sendo a proteção definitiva.
+        ...(isAdmin
+          ? { slug: formData.slug, ativo: formData.ativo }
+          : {}),
         ...(!candidato ? { user_id: user?.id } : {}),
         // O cargo do candidato também é o slot que fica travado na colinha.
         cargo_travado_id: formData.cargo_id,
@@ -249,10 +295,40 @@ export default function CandidatoModal({
         ? await supabase.from("candidatos").update(payload).eq("id", candidato.id)
         : await supabase.from("candidatos").insert(payload);
       if (error) throw error;
+
+      const retainedUrls = new Set(
+        [
+          formData.url_foto_perfil,
+          ...molduras.flatMap((moldura) => [
+            moldura.stories,
+            moldura.feed,
+            moldura.perfil,
+          ]),
+        ].filter(Boolean),
+      );
+      const pathsToDelete = [
+        ...new Set(
+          pendingStorageDeletes
+            .filter((url) => !retainedUrls.has(url))
+            .map(getMoldurasStoragePath)
+            .filter((path): path is string => Boolean(path)),
+        ),
+      ];
+      if (pathsToDelete.length > 0) {
+        const { error: storageDeleteError } = await supabase.storage
+          .from("molduras")
+          .remove(pathsToDelete);
+        if (storageDeleteError) {
+          alert(
+            "A configuração foi salva, mas um arquivo antigo não pôde ser removido do armazenamento.",
+          );
+        }
+      }
+
       onRefresh();
       onClose();
-    } catch (error: any) {
-      alert(`Erro ao salvar: ${error.message}`);
+    } catch (error: unknown) {
+      alert(`Erro ao salvar: ${getErrorMessage(error)}`);
     } finally {
       setLoading(false);
     }
@@ -298,6 +374,16 @@ export default function CandidatoModal({
                     />
                   ) : (
                     <User className="text-slate-300" size={40} />
+                  )}
+                  {formData.url_foto_perfil && (
+                    <button
+                      type="button"
+                      onClick={removerFotoPerfil}
+                      className="absolute top-1 right-1 z-20 p-2 rounded-full bg-red-600 text-white shadow-lg hover:bg-red-700"
+                      title="Excluir foto de perfil"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   )}
                   <label className="absolute inset-0 bg-blue-600/90 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 rounded-full">
                       <input
@@ -367,6 +453,26 @@ export default function CandidatoModal({
                     ))}
                   </select>
                 </div>
+                {isAdmin && candidato && (
+                  <label className="sm:col-span-2 flex items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer">
+                    <span>
+                      <span className="block text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                        Perfil ativo
+                      </span>
+                      <span className="block text-xs text-slate-400 mt-1">
+                        Controla a disponibilidade pública da campanha.
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={formData.ativo !== false}
+                      onChange={(e) =>
+                        setFormData({ ...formData, ativo: e.target.checked })
+                      }
+                      className="h-5 w-5 accent-blue-600"
+                    />
+                  </label>
+                )}
               </div>
             </div>
           </section>
@@ -442,6 +548,18 @@ export default function CandidatoModal({
                           <div
                             className={`relative w-full bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden group ${tipo === "stories" ? "aspect-[9/14]" : "aspect-square"}`}
                           >
+                            {url && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removerArquivoMoldura(index, tipo)
+                                }
+                                className="absolute top-2 right-2 z-20 p-2 rounded-xl bg-red-600 text-white shadow-lg hover:bg-red-700"
+                                title="Excluir moldura"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
                             {url ? (
                               <img
                                 src={url}
@@ -566,6 +684,23 @@ export default function CandidatoModal({
 }
 
 /* --- AUXILIARES --- */
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Erro inesperado";
+}
+
+function getMoldurasStoragePath(url: string) {
+  try {
+    const marker = "/storage/v1/object/public/molduras/";
+    const pathname = new URL(url).pathname;
+    const markerIndex = pathname.indexOf(marker);
+    if (markerIndex === -1) return null;
+
+    return decodeURIComponent(pathname.slice(markerIndex + marker.length));
+  } catch {
+    return null;
+  }
+}
 
 function SectionTitle({
   icon,

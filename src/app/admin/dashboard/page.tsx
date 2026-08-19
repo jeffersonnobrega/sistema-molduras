@@ -45,6 +45,7 @@ function AdminDashboardContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCandidato, setSelectedCandidato] =
     useState<CandidatoDB | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdminGeral, setIsAdminGeral] = useState(false);
 
@@ -84,6 +85,34 @@ function AdminDashboardContent() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/login";
+  };
+
+  const handleToggleStatus = async (candidato: CandidatoDB) => {
+    if (!isAdminGeral || updatingStatusId) return;
+
+    const novoStatus = !candidato.ativo;
+    const acao = novoStatus ? "ativar" : "inativar";
+    if (!window.confirm(`Deseja ${acao} o perfil de ${candidato.nome_urna}?`)) {
+      return;
+    }
+
+    setUpdatingStatusId(candidato.id);
+    try {
+      const { error } = await supabase
+        .from("candidatos")
+        .update({ ativo: novoStatus })
+        .eq("id", candidato.id);
+      if (error) throw error;
+      await carregarDados();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível alterar o status do candidato.",
+      );
+    } finally {
+      setUpdatingStatusId(null);
+    }
   };
 
   // Candidatos filtrados conforme o filtro selecionado
@@ -190,7 +219,9 @@ function AdminDashboardContent() {
                 <UserCircle size={13} className="text-blue-500" />
                 {isAdminGeral
                   ? "Administrador Geral"
-                  : candidatos[0]?.nome_urna || "Candidato"}
+                  : candidatos.length > 1
+                    ? `${candidatos.length} candidatos vinculados`
+                    : candidatos[0]?.nome_urna || "Candidato"}
               </span>
             </div>
 
@@ -284,6 +315,9 @@ function AdminDashboardContent() {
                         <CandidatoCard
                           key={c.id}
                           candidato={c}
+                          isAdminGeral={isAdminGeral}
+                          updatingStatus={updatingStatusId === c.id}
+                          onToggleStatus={() => handleToggleStatus(c)}
                           onEdit={() => {
                             setSelectedCandidato(c);
                             setIsModalOpen(true);
@@ -305,7 +339,11 @@ function AdminDashboardContent() {
               ) : (
                 <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
                   <LeadsTable
-                    slug={isAdminGeral ? undefined : candidatos[0]?.slug}
+                    slug={
+                      !isAdminGeral && candidatos.length === 1
+                        ? candidatos[0]?.slug
+                        : undefined
+                    }
                   />
                 </div>
               )}
@@ -339,9 +377,15 @@ function AdminDashboardLoading() {
 
 function CandidatoCard({
   candidato: c,
+  isAdminGeral,
+  updatingStatus,
+  onToggleStatus,
   onEdit,
 }: {
   candidato: CandidatoDB;
+  isAdminGeral: boolean;
+  updatingStatus: boolean;
+  onToggleStatus: () => void;
   onEdit: () => void;
 }) {
   return (
@@ -407,6 +451,30 @@ function CandidatoCard({
 
       {/* Ações */}
       <div className="px-5 pb-5 flex flex-col gap-2 mt-auto">
+        {isAdminGeral && (
+          <button
+            onClick={onToggleStatus}
+            disabled={updatingStatus}
+            className={`w-full py-3 rounded-xl font-black uppercase text-[9px] tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 ${
+              c.ativo
+                ? "bg-red-50 text-red-600 hover:bg-red-100"
+                : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+            }`}
+          >
+            {updatingStatus ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : c.ativo ? (
+              <XCircle size={13} />
+            ) : (
+              <CheckCircle2 size={13} />
+            )}
+            {updatingStatus
+              ? "Atualizando..."
+              : c.ativo
+                ? "Inativar perfil"
+                : "Ativar perfil"}
+          </button>
+        )}
         <button
           onClick={onEdit}
           className="w-full py-3 bg-slate-50 text-slate-600 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2 active:scale-95"
