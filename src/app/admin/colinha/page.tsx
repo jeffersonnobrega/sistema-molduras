@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import {
+  STORAGE_IMAGE_ACCEPT,
+  validateStorageImage,
+} from "@/lib/storage-image";
+import {
   LayoutDashboard,
   Users,
   Lock,
@@ -173,18 +177,9 @@ export default function AdminColinhaVisual() {
       return;
     }
 
-    const tiposPermitidos: Record<string, string> = {
-      "image/png": "png",
-      "image/jpeg": "jpg",
-      "image/webp": "webp",
-    };
-    const extensao = tiposPermitidos[file.type];
-    if (!extensao) {
-      alert("Envie uma imagem PNG, JPG ou WEBP.");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      alert("A foto deve ter no máximo 10 MB.");
+    const validation = validateStorageImage(file);
+    if (!validation.valid) {
+      alert(validation.error);
       return;
     }
 
@@ -196,7 +191,7 @@ export default function AdminColinhaVisual() {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
-      const caminho = `${candidatoSelecionadoObj.slug}/colinha/${nomeCargoSeguro}-${Date.now()}.${extensao}`;
+      const caminho = `${candidatoSelecionadoObj.slug}/colinha/${nomeCargoSeguro}-${Date.now()}.${validation.extension}`;
       const { error } = await supabase.storage
         .from("molduras")
         .upload(caminho, file, {
@@ -607,7 +602,7 @@ export default function AdminColinhaVisual() {
                                       : "Trave para enviar"}
                                 <input
                                   type="file"
-                                  accept="image/png,image/jpeg,image/webp"
+                                  accept={STORAGE_IMAGE_ACCEPT}
                                   className="hidden"
                                   disabled={
                                     !isTravado ||

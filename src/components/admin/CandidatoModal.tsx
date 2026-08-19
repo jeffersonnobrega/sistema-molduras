@@ -2,6 +2,10 @@
 
 import { useState, useEffect, ChangeEvent } from "react";
 import { supabase } from "@/lib/supabase";
+import {
+  STORAGE_IMAGE_ACCEPT,
+  validateStorageImage,
+} from "@/lib/storage-image";
 import { CandidatoDB, CargoPoliticoDB } from "@/types/candidato";
 import {
   X,
@@ -138,12 +142,18 @@ export default function CandidatoModal({
   const handleUploadPerfil = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !formData.slug) return;
+    const validation = validateStorageImage(file);
+    if (!validation.valid) {
+      alert(validation.error);
+      e.target.value = "";
+      return;
+    }
     setUploadingPerfil(true);
     try {
-      const fileName = `${formData.slug}/perfil-${Date.now()}.${file.name.split(".").pop()}`;
+      const fileName = `${formData.slug}/perfil-${Date.now()}.${validation.extension}`;
       const { error } = await supabase.storage
         .from("molduras")
-        .upload(fileName, file);
+        .upload(fileName, file, { contentType: file.type, upsert: false });
       if (error) throw error;
       const {
         data: { publicUrl },
@@ -167,16 +177,22 @@ export default function CandidatoModal({
   ) => {
     const file = e.target.files?.[0];
     if (!file || !formData.slug) return;
+    const validation = validateStorageImage(file);
+    if (!validation.valid) {
+      alert(validation.error);
+      e.target.value = "";
+      return;
+    }
 
     const key = `${index}-${tipo}`;
     const previousUrl = molduras[index]?.[tipo];
     setUploadingMoldura(key);
 
     try {
-      const fileName = `${formData.slug}/${tipo}-${index + 1}-${Date.now()}.${file.name.split(".").pop()}`;
+      const fileName = `${formData.slug}/${tipo}-${index + 1}-${Date.now()}.${validation.extension}`;
       const { error } = await supabase.storage
         .from("molduras")
-        .upload(fileName, file);
+        .upload(fileName, file, { contentType: file.type, upsert: false });
       if (error) throw error;
       const {
         data: { publicUrl },
@@ -390,7 +406,7 @@ export default function CandidatoModal({
                         type="file"
                         hidden
                         onChange={handleUploadPerfil}
-                        accept="image/*"
+                        accept={STORAGE_IMAGE_ACCEPT}
                         disabled={uploadingPerfil}
                       />
                       <Upload className="text-white mb-1" size={18} />
@@ -573,7 +589,7 @@ export default function CandidatoModal({
                                 <input
                                   type="file"
                                   hidden
-                                  accept="image/*"
+                                  accept={STORAGE_IMAGE_ACCEPT}
                                   disabled={isUp}
                                   onChange={(e) =>
                                     handleUploadMoldura(e, index, tipo)

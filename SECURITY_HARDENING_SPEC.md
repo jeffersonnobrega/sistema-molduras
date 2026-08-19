@@ -207,20 +207,24 @@ Status: [x] Concluída e validada no Supabase e na aplicação em 18/08/2026.
 
 Prioridade: alta.
 
-Situação atual: bucket público `molduras`, `file_size_limit = null`, `allowed_mime_types = null`.
+Status: [x] Concluída e validada no Supabase e na aplicação em 19/08/2026.
 
-- [ ] Manter o bucket público para servir ativos da campanha.
-- [ ] Definir limite entre 10 MB e 15 MB após conferir o maior arquivo legítimo.
-- [ ] Permitir somente `image/png`, `image/jpeg` e `image/webp`.
-- [ ] Validar tamanho e tipo também no formulário administrativo.
-- [ ] Impedir extensão não suportada.
-- [ ] Avaliar limpeza de arquivos substituídos.
-- [ ] Preservar o formato de caminho `{slug}/arquivo`.
+Situação atual: bucket público `molduras`, limite de 10 MB e MIME types restritos a PNG, JPEG e WEBP.
+
+- [x] Preparar bucket público para servir ativos da campanha.
+- [x] Definir limite de 10 MB após conferir o maior arquivo legítimo versionado (aproximadamente 218 KB).
+- [x] Permitir somente `image/png`, `image/jpeg` e `image/webp`.
+- [x] Validar tamanho e tipo também no formulário administrativo.
+- [x] Impedir extensão não suportada no formulário e nas políticas de escrita.
+- [x] Avaliar limpeza de arquivos substituídos; o modal remove os objetos antigos somente após salvar os novos vínculos.
+- [x] Preservar o formato de caminho `{slug}/arquivo`.
+- [x] Aplicar `supabase/migrations/20260819_limit_molduras_storage.sql`.
+- [x] Executar `supabase/tests/SEC006_MANUAL_TESTS.md` e validar o aceite.
 
 ### Aceite
 
-- Upload fora da pasta vinculada, acima do limite ou com MIME proibido é recusado.
-- Molduras públicas continuam carregando.
+- [x] Upload fora da pasta vinculada, acima do limite ou com MIME proibido é recusado.
+- [x] Molduras públicas continuam carregando.
 
 ---
 
