@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
 import { toBlob } from "html-to-image";
 import { CheckCircle2, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import type { CandidatoTheme } from "@/lib/theme-mapper";
 
 async function saveOrDownload(blob: Blob, filename: string): Promise<void> {
   const objectUrl = URL.createObjectURL(blob);
@@ -25,95 +26,77 @@ interface CandidatoData {
   partido: string;
 }
 
+interface CargoPublico {
+  id: string;
+  nome: string;
+  digitos: number;
+  ordem_votacao: number;
+}
+
+interface ItemTravadoPublico {
+  cargo_nome: string;
+  nome_urna: string;
+  partido: string;
+  numero: string;
+  url_foto: string | null;
+}
+
+interface PresidentePublico {
+  nome: string;
+  numero: string;
+  url_foto: string | null;
+}
+
 interface ColinhaProps {
   candidatoData: CandidatoData;
   config: {
     tipo_regional: "Deputado Estadual" | "Deputado Distrital";
     lead_id?: string;
   };
-  theme: any;
-  partido: string;
+  theme: CandidatoTheme["editor"];
+  cargosIniciais: CargoPublico[];
+  itensTravadosIniciais: ItemTravadoPublico[];
+  presidenteInicial: PresidentePublico | null;
 }
 
 export default function CandidatoColinha({
   candidatoData,
   config,
   theme,
-  partido,
+  cargosIniciais,
+  itensTravadosIniciais,
+  presidenteInicial,
 }: ColinhaProps) {
   const colinhaRef = useRef<HTMLDivElement>(null);
 
-  const [cargos, setCargos] = useState<any[]>([]);
+  const [cargos] = useState<CargoPublico[]>(() =>
+    cargosIniciais.filter((c) => {
+      if (
+        config.tipo_regional === "Deputado Distrital" &&
+        c.nome === "Deputado Estadual"
+      )
+        return false;
+      if (
+        config.tipo_regional === "Deputado Estadual" &&
+        c.nome === "Deputado Distrital"
+      )
+        return false;
+      return true;
+    }),
+  );
   const [valoresDigitados, setValoresDigitados] = useState<{
     [key: string]: string;
   }>({});
   const [nomesDigitados, setNomesDigitados] = useState<{
     [key: string]: string;
   }>({});
-  const [itensTravados, setItensTravados] = useState<any[]>([]);
-  const [presidenteData, setPresidenteData] = useState<any>(null);
+  const [itensTravados] =
+    useState<ItemTravadoPublico[]>(itensTravadosIniciais);
+  const [presidenteData] =
+    useState<PresidentePublico | null>(presidenteInicial);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const carregarColinhaRelacional = useCallback(async () => {
-    try {
-      setIsLoading(true);
-
-      const { data: listCargos, error: errCargos } = await supabase
-        .from("cargos_politicos")
-        .select("*")
-        .order("ordem_votacao", { ascending: true });
-
-      if (errCargos) throw errCargos;
-
-      const cargosFiltrados = (listCargos || []).filter((c) => {
-        if (
-          config.tipo_regional === "Deputado Distrital" &&
-          c.nome === "Deputado Estadual"
-        )
-          return false;
-        if (
-          config.tipo_regional === "Deputado Estadual" &&
-          c.nome === "Deputado Distrital"
-        )
-          return false;
-        return true;
-      });
-      setCargos(cargosFiltrados);
-
-      const { data: configData } = await supabase
-        .from("colinha_config")
-        .select("*")
-        .eq("candidato_id", candidatoData.id)
-        .maybeSingle();
-
-      if (configData) {
-        const { data: travadosData } = await supabase
-          .from("colinha_travados")
-          .select("*")
-          .eq("colinha_config_id", configData.id);
-        if (travadosData) setItensTravados(travadosData);
-
-        if (configData.presidente_id) {
-          const { data: pres } = await supabase
-            .from("presidenciados")
-            .select("*")
-            .eq("id", configData.presidente_id)
-            .maybeSingle();
-          if (pres) setPresidenteData(pres);
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao estruturar colinha relacional:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [config.tipo_regional, candidatoData.id]);
-
-  useEffect(() => {
-    carregarColinhaRelacional();
-  }, [carregarColinhaRelacional]);
+  const isLoading = false;
 
   const handleChange = (cargoId: string, val: string, maxDigitos: number) => {
     const apenasNumeros = val.replace(/\D/g, "").slice(0, maxDigitos);
@@ -158,6 +141,9 @@ export default function CandidatoColinha({
       if (travado) return travado.numero;
       return valoresDigitados[c.id] || null;
     };
+    const presidenteCargoId = cargos.find(
+      (c) => c.nome.toUpperCase() === "PRESIDENTE",
+    )?.id;
 
     await supabase.from("colinhas_salvas").insert([
       {
@@ -173,9 +159,7 @@ export default function CandidatoColinha({
         num_governador: pegarNumeroFinal("Governador"),
         num_presidente: presidenteData
           ? presidenteData.numero
-          : valoresDigitados[
-              cargos.find((c) => c.nome.toUpperCase() === "PRESIDENTE")?.id
-            ] || null,
+          : (presidenteCargoId && valoresDigitados[presidenteCargoId]) || null,
       },
     ]);
 

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getCandidatoTheme } from "@/lib/theme-mapper";
 import { CandidatoDB } from "@/types/candidato";
-import { ShieldAlert, CreditCard } from "lucide-react";
+import { CreditCard } from "lucide-react";
 import Image from "next/image";
 
 import CanvasEditor from "@/components/CanvasEditor";
@@ -17,16 +17,38 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+interface PublicCampaignPayload {
+  candidato: CandidatoDB;
+  cargos: Array<{
+    id: string;
+    nome: string;
+    digitos: number;
+    ordem_votacao: number;
+  }>;
+  travados: Array<{
+    cargo_nome: string;
+    nome_urna: string;
+    partido: string;
+    numero: string;
+    url_foto: string | null;
+  }>;
+  presidente: {
+    nome: string;
+    numero: string;
+    url_foto: string | null;
+  } | null;
+}
+
 const SLUGS_SISTEMA_MOLDURA = ["pepa", "anchieta"];
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const { data: candidato } = await supabase
-    .from("candidatos")
-    .select("nome_urna, partido")
-    .eq("slug", slug)
-    .single();
+  const { data } = await supabase.rpc("get_public_campaign", {
+    target_slug: slug,
+  });
+  const candidato = (data as unknown as PublicCampaignPayload | null)
+    ?.candidato;
 
   if (!candidato) return { title: "Candidato não encontrado | SIND" };
 
@@ -53,36 +75,13 @@ export const fetchCache = "force-no-store";
 export default async function CandidatoPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const { data: rawCandidato, error: candidatoError } = await supabase
-    .from("candidatos")
-    .select("*")
-    .eq("slug", slug)
-    .single();
-
-  if (candidatoError || !rawCandidato) return notFound();
-
-  if (rawCandidato.ativo === false) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center font-sans">
-        <div className="max-w-md space-y-8 p-12 bg-white rounded-[3rem] border border-slate-200 shadow-xl">
-          <div className="bg-red-50 text-red-600 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto rotate-3">
-            <ShieldAlert size={40} />
-          </div>
-          <div className="space-y-3">
-            <h1 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900 leading-none">
-              Página <br /> <span className="text-red-600">Indisponível</span>
-            </h1>
-            <p className="text-slate-500 font-medium">
-              Esta página encontra-se temporariamente inativa.
-            </p>
-          </div>
-          <div className="pt-4 border-t border-slate-100 font-black uppercase tracking-[0.4em] text-slate-300 text-[9px]">
-            SIND - GESTÃO DE MOLDURAS
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const { data, error: candidatoError } = await supabase.rpc(
+    "get_public_campaign",
+    { target_slug: slug },
+  );
+  const campaign = data as unknown as PublicCampaignPayload | null;
+  if (candidatoError || !campaign) return notFound();
+  const rawCandidato = campaign.candidato;
 
   const t = new Date().getTime();
   const molduraStories = rawCandidato.url_moldura
@@ -338,7 +337,9 @@ export default async function CandidatoPage({ params }: PageProps) {
                 lead_id: undefined,
               }}
               theme={theme.editor}
-              partido={candidato.partido}
+              cargosIniciais={campaign.cargos}
+              itensTravadosIniciais={campaign.travados}
+              presidenteInicial={campaign.presidente}
             />
           </div>
         </section>

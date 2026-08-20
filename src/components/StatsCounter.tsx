@@ -27,41 +27,19 @@ export default function StatsCounter({
   const [stats, setStats] = useState<Stats>(initialStats);
 
   useEffect(() => {
-    // Busca os valores atuais imediatamente ao montar
-    supabase
-      .from("candidatos")
-      .select("total_views, stats_leads_count, total_shares")
-      .eq("slug", slug)
-      .single()
-      .then(({ data }) => {
-        if (data) setStats(data as Stats);
-      });
+    const refresh = () => {
+      void supabase
+        .rpc("get_public_candidate_stats", { target_slug: slug })
+        .then(({ data }) => {
+          if (data) setStats(data as Stats);
+        });
+    };
 
-    // Realtime: escuta mudanças na linha deste candidato
-    const channel = supabase
-      .channel(`stats-${slug}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "candidatos",
-          filter: `slug=eq.${slug}`,
-        },
-        (payload) => {
-          const updated = payload.new as Partial<Stats>;
-          setStats((prev) => ({
-            total_views: updated.total_views ?? prev.total_views,
-            stats_leads_count:
-              updated.stats_leads_count ?? prev.stats_leads_count,
-            total_shares: updated.total_shares ?? prev.total_shares,
-          }));
-        },
-      )
-      .subscribe();
+    refresh();
+    const interval = window.setInterval(refresh, 30_000);
 
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(interval);
     };
   }, [slug]);
 
