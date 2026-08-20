@@ -34,6 +34,7 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [candidateFilter, setCandidateFilter] = useState(slug || "");
   const [loadError, setLoadError] = useState("");
 
   /* ===============================
@@ -68,9 +69,20 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
   /* ===============================
      FILTRO LOCAL
   ================================ */
+  const candidateOptions = Array.from(
+    new Map(
+      leads.map((lead) => [
+        lead.candidato_slug,
+        lead.candidatos?.nome_urna || lead.candidato_slug,
+      ]),
+    ),
+  ).sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
+
   const leadsFiltrados = leads.filter((lead) => {
     const termo = searchTerm.toLowerCase();
-    return (
+    const matchesCandidate =
+      !candidateFilter || lead.candidato_slug === candidateFilter;
+    return matchesCandidate && (
       lead.nome?.toLowerCase().includes(termo) ||
       lead.whatsapp.includes(searchTerm) ||
       lead.candidato_slug.toLowerCase().includes(termo) ||
@@ -108,7 +120,7 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
 
     XLSX.writeFile(
       workbook,
-      `leads-${slug || "todos"}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      `leads-${candidateFilter || slug || "todos"}-${new Date().toISOString().slice(0, 10)}.xlsx`,
     );
   };
 
@@ -162,6 +174,22 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
           />
         </div>
 
+        {!slug && candidateOptions.length > 1 && (
+          <select
+            value={candidateFilter}
+            onChange={(event) => setCandidateFilter(event.target.value)}
+            className="min-w-52 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-600 outline-none focus:border-blue-500"
+            aria-label="Filtrar leads por candidato"
+          >
+            <option value="">Todos os candidatos</option>
+            {candidateOptions.map(([candidateSlug, candidateName]) => (
+              <option key={candidateSlug} value={candidateSlug}>
+                {candidateName}
+              </option>
+            ))}
+          </select>
+        )}
+
         {/* INFO + DOWNLOAD */}
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
@@ -188,7 +216,6 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
                 <div className="flex items-center gap-2">
                   <User size={14} /> Nome do Lead
                 </div>
-                platform
               </th>
 
               <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
