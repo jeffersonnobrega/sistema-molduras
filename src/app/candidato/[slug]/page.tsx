@@ -121,7 +121,6 @@ export default async function CandidatoPage({ params }: PageProps) {
 
       <ViewCounter slug={slug} />
 
-      {/* ======= NAV ======= */}
       <nav
         className="sticky top-0 z-50 backdrop-blur-md px-4 md:px-6 py-3 transition-all"
         style={{
@@ -130,7 +129,6 @@ export default async function CandidatoPage({ params }: PageProps) {
         }}
       >
         <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
-          {/* A foto amplia; nome e número continuam levando ao editor. */}
           <div className="flex min-w-0 items-center gap-3">
             <CandidateProfilePhoto
               src={candidato.url_foto_perfil}
@@ -184,13 +182,11 @@ export default async function CandidatoPage({ params }: PageProps) {
         </div>
       </nav>
 
-      {/* ======= HERO + EDITOR ======= */}
       <section
         id="criar"
         className="relative pt-10 pb-16 px-4 md:px-6 transition-colors overflow-hidden"
         style={{ backgroundColor: theme.sections.editorBg }}
       >
-        {/* Blobs decorativos — cores dinâmicas via inline style (necessário) */}
         <div
           className="absolute -top-32 -right-32 w-125 h-125 rounded-full blur-3xl opacity-20 pointer-events-none"
           style={{ backgroundColor: candidato.cor_primaria }}
@@ -201,9 +197,7 @@ export default async function CandidatoPage({ params }: PageProps) {
         />
 
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center relative z-10">
-          {/* Texto hero */}
           <div className="text-center lg:text-left space-y-5 order-2 lg:order-1">
-            {/* Badge partido + número */}
             <div
               className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest"
               style={{
@@ -240,7 +234,6 @@ export default async function CandidatoPage({ params }: PageProps) {
             </p>
           </div>
 
-          {/* Editor — aparece primeiro no mobile */}
           <div className="flex justify-center w-full order-1 lg:order-2">
             <div className="w-full max-w-90">
               <CanvasEditor
@@ -265,7 +258,6 @@ export default async function CandidatoPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* ======= STATS ======= */}
       <section
         className="border-y py-12 px-4 md:px-6 text-center transition-colors"
         style={{
@@ -330,7 +322,7 @@ export default async function CandidatoPage({ params }: PageProps) {
                 numero_candidato: candidato.numero_candidato,
                 url_foto_perfil: candidato.url_foto_perfil,
                 cargo_id: candidato.cargo_id,
-                partido: candidato.partido, // ← corrige erro TypeScript 2741
+                partido: candidato.partido,
               }}
               config={{
                 tipo_regional: tipoRegionalAdmin,
@@ -345,7 +337,6 @@ export default async function CandidatoPage({ params }: PageProps) {
         </section>
       )}
 
-      {/* ======= FOOTER ======= */}
       <footer
         className="py-10 px-4 md:px-6 border-t text-center"
         style={{
@@ -381,7 +372,6 @@ export default async function CandidatoPage({ params }: PageProps) {
           className="text-[10px] font-black uppercase tracking-[0.5em]"
           style={{ color: theme.footer.text }}
         >
-          {/* Utilizando a constante global para validar o slug */}
           {SLUGS_SISTEMA_MOLDURA.includes(slug)
             ? "Sistema Moldura Digital"
             : "Cleyton Santos"}

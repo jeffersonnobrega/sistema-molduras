@@ -1,15 +1,7 @@
-// tests/security.test.ts — seção PhotoUpload atualizada
 
-// ============================================================
-// APENAS A SUITE DO PHOTOUPLOAD — substitui a seção correspondente
-// no arquivo security.test.ts existente
-// ============================================================
 
 import { describe, it, expect } from "vitest";
 
-// ============================================================
-// 5. UPLOAD DE FOTO — Validação e compressão
-// ============================================================
 describe("PhotoUpload — Validação de arquivo", () => {
   const ALLOWED_TYPES = [
     "image/jpeg",
@@ -39,16 +31,15 @@ describe("PhotoUpload — Validação de arquivo", () => {
   it("deve aceitar HEIC/HEIF (formato padrão iPhone)", () => {
     expect(validarTipo("image/heic", "foto.heic")).toBe(true);
     expect(validarTipo("image/heif", "foto.heif")).toBe(true);
-    // iPhones às vezes enviam type vazio mas com extensão correta
+
     expect(validarTipo("", "foto.heic")).toBe(true);
   });
 
   it("deve aceitar qualquer tamanho de arquivo (sem rejeição por tamanho)", () => {
-    // Novo comportamento: sem limite de tamanho — comprime no client
     const semLimiteTamanho = (_size: number) => true;
-    expect(semLimiteTamanho(1 * 1024 * 1024)).toBe(true); // 1MB
-    expect(semLimiteTamanho(10 * 1024 * 1024)).toBe(true); // 10MB
-    expect(semLimiteTamanho(50 * 1024 * 1024)).toBe(true); // 50MB — aceita e comprime
+    expect(semLimiteTamanho(1 * 1024 * 1024)).toBe(true);
+    expect(semLimiteTamanho(10 * 1024 * 1024)).toBe(true);
+    expect(semLimiteTamanho(50 * 1024 * 1024)).toBe(true);
   });
 
   it("compressão deve respeitar MAX_DIMENSION de 2048px", () => {
@@ -69,19 +60,15 @@ describe("PhotoUpload — Validação de arquivo", () => {
       };
     };
 
-    // Foto grande paisagem
     const r1 = calcularDimensoes(4032, 3024);
     expect(r1.width).toBeLessThanOrEqual(MAX_DIMENSION);
     expect(r1.height).toBeLessThanOrEqual(MAX_DIMENSION);
-    // Proporção preservada
     expect(Math.abs(r1.width / r1.height - 4032 / 3024)).toBeLessThan(0.01);
 
-    // Foto grande retrato
     const r2 = calcularDimensoes(3024, 4032);
     expect(r2.width).toBeLessThanOrEqual(MAX_DIMENSION);
     expect(r2.height).toBeLessThanOrEqual(MAX_DIMENSION);
 
-    // Foto pequena — não redimensiona
     const r3 = calcularDimensoes(800, 600);
     expect(r3.width).toBe(800);
     expect(r3.height).toBe(600);
@@ -90,7 +77,6 @@ describe("PhotoUpload — Validação de arquivo", () => {
   it("não deve aceitar extensão .exe ou .js disfarçada de imagem", () => {
     expect(validarTipo("application/javascript", "script.js")).toBe(false);
     expect(validarTipo("application/x-msdownload", "malware.exe")).toBe(false);
-    // Mesmo com nome de imagem, o MIME type barra
     expect(validarTipo("application/javascript", "foto.jpg.js")).toBe(false);
   });
 });

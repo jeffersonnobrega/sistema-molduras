@@ -1,12 +1,11 @@
 "use client";
-// components/admin/CreateUserModal.tsx
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { X, Loader2, UserPlus, ShieldCheck, User } from "lucide-react";
 
 interface CreateUserModalProps {
-  slugsCandidatos: { slug: string; nome_urna: string }[]; // lista para vincular candidato
+  slugsCandidatos: { slug: string; nome_urna: string }[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -42,7 +41,6 @@ export default function CreateUserModal({
 
     setLoading(true);
     try {
-      // Pega o token do usuário logado para autenticar a chamada
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token) throw new Error("Sessão expirada. Faça login novamente.");
@@ -84,7 +82,6 @@ export default function CreateUserModal({
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-        {/* Header */}
         <header className="p-6 border-b border-slate-100 flex justify-between items-center">
           <h2 className="text-xl font-black uppercase italic tracking-tighter text-slate-800">
             Criar <span className="text-blue-600">Acesso</span>
@@ -118,7 +115,6 @@ export default function CreateUserModal({
             </button>
           </div>
 
-          {/* Nome */}
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">
               Nome
@@ -136,7 +132,6 @@ export default function CreateUserModal({
             />
           </div>
 
-          {/* Email */}
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">
               Email
@@ -154,7 +149,6 @@ export default function CreateUserModal({
             />
           </div>
 
-          {/* Vínculos do gestor com um ou mais candidatos */}
           {tipo === "candidato" && <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">
                 Vincular aos candidatos
@@ -190,7 +184,6 @@ export default function CreateUserModal({
               </p>
           </div>}
 
-          {/* Feedback */}
           {error && (
             <p className="text-[11px] text-red-600 font-bold text-center bg-red-50 py-2 px-3 rounded-xl">
               ⚠️ {error}
@@ -202,7 +195,6 @@ export default function CreateUserModal({
             </p>
           )}
 
-          {/* Info sobre o fluxo */}
           {!success && (
             <p className="text-[10px] text-slate-400 text-center leading-relaxed">
               Um novo usuário receberá o convite por email. Se o email já
@@ -210,7 +202,6 @@ export default function CreateUserModal({
             </p>
           )}
 
-          {/* Botões */}
           <div className="grid grid-cols-2 gap-3 pt-1">
             <button
               type="button"

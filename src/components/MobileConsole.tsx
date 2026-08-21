@@ -4,7 +4,6 @@ import { useEffect } from "react";
 
 export default function MobileConsole() {
   useEffect(() => {
-    // Só carrega se estiver em ambiente de desenvolvimento local e no navegador
     if (
       process.env.NODE_ENV === "development" &&
       typeof window !== "undefined"

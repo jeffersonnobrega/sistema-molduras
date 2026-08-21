@@ -1,5 +1,4 @@
 "use client";
-// src/app/admin/reset-password/page.tsx
 // Com implicit flow, os tokens chegam no HASH da URL: #access_token=...&type=recovery
 
 import { useState, useEffect } from "react";
@@ -7,6 +6,7 @@ import { supabaseAuth } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 
 type Stage = "loading" | "form" | "done" | "error";
+const MIN_PASSWORD_LENGTH = 8;
 
 export default function ResetPasswordPage() {
   const [stage, setStage] = useState<Stage>("loading");
@@ -17,11 +17,9 @@ export default function ResetPasswordPage() {
   const [errorDetail, setErrorDetail] = useState("");
 
   useEffect(() => {
-    // Com implicit flow, tokens chegam no hash: #access_token=xxx&type=recovery
     const hash = window.location.hash.substring(1);
     const hashParams = new URLSearchParams(hash);
 
-    // Verifica erro no hash
     const hashError = hashParams.get("error");
     if (hashError) {
       const code = hashParams.get("error_code");
@@ -34,7 +32,6 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    // Verifica erro nos query params (fallback)
     const searchParams = new URLSearchParams(window.location.search);
     const searchError = searchParams.get("error");
     if (searchError) {
@@ -51,7 +48,6 @@ export default function ResetPasswordPage() {
     const refreshToken = hashParams.get("refresh_token");
 
     if (accessToken && refreshToken) {
-      // Seta a sessão com os tokens do hash
       supabaseAuth.auth
         .setSession({ access_token: accessToken, refresh_token: refreshToken })
         .then(({ error }) => {
@@ -59,7 +55,7 @@ export default function ResetPasswordPage() {
             setErrorDetail("Erro ao validar sessão: " + error.message);
             setStage("error");
           } else {
-            // Limpa o hash da URL
+            // Remove os tokens da barra de endereço após instalar a sessão.
             window.history.replaceState(null, "", window.location.pathname);
             setStage("form");
           }
@@ -67,7 +63,6 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    // Sem tokens — verifica se já tem sessão ativa
     supabaseAuth.auth.getSession().then(({ data }) => {
       if (data.session) {
         setStage("form");
@@ -83,8 +78,10 @@ export default function ResetPasswordPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
-    if (password.length < 8) {
-      setFormError("A senha deve ter pelo menos 8 caracteres.");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setFormError(
+        `A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`,
+      );
       return;
     }
     if (password !== confirm) {
@@ -175,6 +172,7 @@ export default function ResetPasswordPage() {
             <form onSubmit={handleSave} className="space-y-4">
               <input
                 type="password"
+                minLength={MIN_PASSWORD_LENGTH}
                 placeholder="Nova senha (mín. 8 caracteres)"
                 value={password}
                 disabled={saving}
@@ -204,6 +202,7 @@ export default function ResetPasswordPage() {
               )}
               <input
                 type="password"
+                minLength={MIN_PASSWORD_LENGTH}
                 placeholder="Confirmar nova senha"
                 value={confirm}
                 disabled={saving}
@@ -230,7 +229,11 @@ export default function ResetPasswordPage() {
               )}
               <button
                 type="submit"
-                disabled={saving || password !== confirm || password.length < 8}
+                disabled={
+                  saving ||
+                  password !== confirm ||
+                  password.length < MIN_PASSWORD_LENGTH
+                }
                 className="w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2"
               >
                 {saving ? (

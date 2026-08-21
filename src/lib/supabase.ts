@@ -4,7 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Cliente principal com SSR (para uso geral na aplicação)
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 // Cliente auth sem PKCE — usado exclusivamente para resetPasswordForEmail e invite

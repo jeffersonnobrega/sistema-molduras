@@ -21,27 +21,18 @@ import {
 import Link from "next/link";
 
 export default function AdminColinhaVisual() {
-  // Estados de Listagem
   const [candidatos, setCandidatos] = useState<any[]>([]);
   const [cargosSistema, setCargosSistema] = useState<any[]>([]);
   const [presidentes, setPresidentes] = useState<any[]>([]);
-
-  // Estado do Filtro Ativo
   const [selectedCandidatoId, setSelectedCandidatoId] = useState<string>("");
-
-  // Estados da Colinha Ativa
   const [config, setConfig] = useState<any>(null);
   const [travados, setTravados] = useState<any[]>([]);
-
-  // Status de UI
   const [loadingListas, setLoadingListas] = useState(true);
   const [loadingColinha, setLoadingColinha] = useState(false);
   const [isSavingGeral, setIsSavingGeral] = useState(false);
   const [uploadingFotoCargo, setUploadingFotoCargo] = useState<string | null>(
     null,
   );
-
-  // 1. CARGA INICIAL
   useEffect(() => {
     async function carregarListasIniciais() {
       try {
@@ -79,8 +70,6 @@ export default function AdminColinhaVisual() {
     }
     carregarListasIniciais();
   }, []);
-
-  // 2. MUDANÇA DE CANDIDATO
   useEffect(() => {
     if (!selectedCandidatoId) return;
 
@@ -123,8 +112,6 @@ export default function AdminColinhaVisual() {
 
     buscarColinhaDoCandidato();
   }, [selectedCandidatoId]);
-
-  // 3. ALTERNAR CADEADO (Local)
   const handleToggleTrancamento = (cargoObj: any) => {
     const existente = travados.find(
       (t) =>
@@ -152,8 +139,6 @@ export default function AdminColinhaVisual() {
       setTravados((prev) => [...prev, novoSlotLocal]);
     }
   };
-
-  // 4. MUDANÇA EM TEMPO REAL NOS INPUTS
   const handleModificarTextoParceiro = (
     cargoNome: string,
     campo: "nome_urna" | "numero",
@@ -234,13 +219,9 @@ export default function AdminColinhaVisual() {
       ),
     );
   };
-
-  // 5. MANIPULAÇÃO LOCAL DO SELECT DE PRESIDENTE
   const handleLocalPresidenteChange = (idPres: string) => {
     setConfig((prev: any) => ({ ...prev, presidente_id: idPres || null }));
   };
-
-  // 6. SALVAR EM LOTE
   const handleSalvarTudo = async () => {
     if (!config) return;
 
@@ -336,13 +317,11 @@ export default function AdminColinhaVisual() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row font-sans text-slate-900">
-      {/* SIDEBAR TOTALMENTE CORRIGIDA E SINCRONIZADA */}
       <aside className="w-full md:w-72 bg-white border-r border-slate-200 flex flex-col p-8 shrink-0 md:h-screen md:sticky md:top-0">
         <h1 className="text-xl font-black uppercase tracking-tighter text-slate-800 mb-8">
           SIND <span className="text-blue-600">ADMIN</span>
         </h1>
         <nav className="space-y-2">
-          {/* Link para voltar ao Dashboard na visualização padrão */}
           <Link
             href="/admin/dashboard"
             className="flex items-center gap-4 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all"
@@ -350,7 +329,6 @@ export default function AdminColinhaVisual() {
             <LayoutDashboard size={18} /> Dashboard
           </Link>
 
-          {/* Aba de leads agora presente! Passa parâmetro via url para ativar ao carregar o dashboard */}
           <Link
             href="/admin/dashboard?tab=leads"
             className="flex items-center gap-4 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all"
@@ -358,7 +336,6 @@ export default function AdminColinhaVisual() {
             <Users size={18} /> Base de Leads
           </Link>
 
-          {/* Estado Selecionado Ativo correspondente ao mock visual da image_f08329.png */}
           <div className="flex items-center gap-4 w-full p-4 rounded-2xl font-black text-[11px] uppercase tracking-widest bg-blue-600 text-white shadow-lg shadow-blue-100 cursor-default">
             <Lock size={18} /> Configurar Colinha
           </div>
@@ -381,7 +358,6 @@ export default function AdminColinhaVisual() {
         </div>
       </aside>
 
-      {/* ÁREA PRINCIPAL */}
       <main className="flex-1 p-6 md:p-12 overflow-y-auto">
         <div className="max-w-3xl mx-auto space-y-6">
           <header className="bg-white p-6 rounded-3xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">

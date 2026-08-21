@@ -1,4 +1,3 @@
-// src/components/landing/Features.tsx
 import { Users, ShieldCheck, BarChart3, Share2 } from "lucide-react";
 
 export default function Features() {

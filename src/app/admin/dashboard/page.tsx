@@ -114,15 +114,11 @@ function AdminDashboardContent() {
       setUpdatingStatusId(null);
     }
   };
-
-  // Candidatos filtrados conforme o filtro selecionado
   const candidatosFiltrados = useMemo(() => {
     if (filterStatus === "ativos") return candidatos.filter((c) => c.ativo);
     if (filterStatus === "inativos") return candidatos.filter((c) => !c.ativo);
     return candidatos;
   }, [candidatos, filterStatus]);
-
-  // Contagens para os badges dos filtros
   const counts = useMemo(
     () => ({
       ativos: candidatos.filter((c) => c.ativo).length,
@@ -131,8 +127,6 @@ function AdminDashboardContent() {
     }),
     [candidatos],
   );
-
-  // Totais consolidados (sempre sobre todos, não filtrados)
   const totais = candidatos.reduce(
     (acc, curr) => ({
       views: acc.views + (curr.total_views || 0),
@@ -145,7 +139,6 @@ function AdminDashboardContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900">
-      {/* SIDEBAR */}
       <aside className="w-full md:w-72 bg-white border-r border-slate-200 flex flex-col md:h-screen md:sticky top-0 z-10 shadow-sm shrink-0">
         <div className="p-8 pb-6">
           <h1 className="text-2xl font-black uppercase italic tracking-tighter text-slate-800">
@@ -206,10 +199,8 @@ function AdminDashboardContent() {
         </div>
       </aside>
 
-      {/* MAIN */}
       <main className="flex-1 p-4 md:p-10 overflow-y-auto">
         <div className="max-w-6xl mx-auto space-y-8">
-          {/* HEADER */}
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
               <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">
@@ -249,7 +240,6 @@ function AdminDashboardContent() {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               {activeTab === "stats" ? (
                 <div className="space-y-8">
-                  {/* MÉTRICAS TOTAIS — só admin geral */}
                   {isAdminGeral && (
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                       <MetricCard
@@ -275,7 +265,6 @@ function AdminDashboardContent() {
                     </div>
                   )}
 
-                  {/* FILTROS DE STATUS */}
                   {isAdminGeral && (
                     <div className="flex items-center gap-2 flex-wrap">
                       <FilterChip
@@ -308,7 +297,6 @@ function AdminDashboardContent() {
                     </div>
                   )}
 
-                  {/* CARDS DOS CANDIDATOS */}
                   {candidatosFiltrados.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                       {candidatosFiltrados.map((c) => (
@@ -352,7 +340,6 @@ function AdminDashboardContent() {
         </div>
       </main>
 
-      {/* MODAIS */}
       {isModalOpen && (
         <CandidatoModal
           candidato={selectedCandidato}
@@ -373,7 +360,6 @@ function AdminDashboardLoading() {
   );
 }
 
-// ─── SUB-COMPONENTES ────────────────────────────────────────────────
 
 function CandidatoCard({
   candidato: c,
@@ -394,7 +380,6 @@ function CandidatoCard({
         c.ativo ? "border-slate-200" : "border-red-100 bg-red-50/30"
       }`}
     >
-      {/* Status badge */}
       <div className="px-5 pt-4 flex justify-end">
         <span
           className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
@@ -410,7 +395,6 @@ function CandidatoCard({
         </span>
       </div>
 
-      {/* Cabeçalho do card */}
       <div className="flex items-center gap-4 px-5 pb-4 pt-2">
         <div
           className="w-13 h-13 rounded-full overflow-hidden bg-slate-100 border-2 shadow-sm flex items-center justify-center shrink-0"
@@ -441,7 +425,6 @@ function CandidatoCard({
         </div>
       </div>
 
-      {/* Métricas */}
       <div className="grid grid-cols-4 gap-1 mx-5 mb-4 py-4 border-y border-slate-50">
         <MiniStat label="Views" value={c.total_views} />
         <MiniStat label="Leads" value={c.stats_leads_count} />
@@ -449,7 +432,6 @@ function CandidatoCard({
         <MiniStat label="Zaps" value={c.total_shares} />
       </div>
 
-      {/* Ações */}
       <div className="px-5 pb-5 flex flex-col gap-2 mt-auto">
         {isAdminGeral && (
           <button

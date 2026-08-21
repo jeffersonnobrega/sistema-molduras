@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase";
 
 export default function ViewCounter({ slug }: { slug: string }) {
   useEffect(() => {
-    // Dispara o incremento apenas uma vez por carregamento de página
     supabase
       .rpc("increment_views_count", { slug_candidato: slug })
       .then(({ error }) => {
@@ -12,5 +11,5 @@ export default function ViewCounter({ slug }: { slug: string }) {
       });
   }, [slug]);
 
-  return null; // Componente invisível
+  return null;
 }

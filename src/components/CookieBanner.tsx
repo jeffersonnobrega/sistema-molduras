@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export default function CookieBanner() {
-  // 1. O estado inicia como 'false' e só mudará após a montagem completa
   const [shouldShow, setShouldShow] = useState(false);
 
   useEffect(() => {
@@ -24,7 +23,6 @@ export default function CookieBanner() {
     setShouldShow(false);
   };
 
-  // 3. Se não deve mostrar, o retorno é nulo (Server-side safe)
   if (!shouldShow) return null;
 
   return (

@@ -1,4 +1,3 @@
-// vitest.config.ts — coloca na raiz do projeto
 import { defineConfig } from "vitest/config";
 import path from "path";
 

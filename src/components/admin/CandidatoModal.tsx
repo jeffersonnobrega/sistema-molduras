@@ -19,8 +19,6 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-
-// Tipo de um conjunto de molduras
 interface MolduraSet {
   label: string;
   stories: string;
@@ -51,7 +49,7 @@ export default function CandidatoModal({
 }: ModalProps) {
   const [loading, setLoading] = useState(false);
   const [uploadingPerfil, setUploadingPerfil] = useState(false);
-  const [uploadingMoldura, setUploadingMoldura] = useState<string | null>(null); // "0-stories" | "1-feed" etc.
+  const [uploadingMoldura, setUploadingMoldura] = useState<string | null>(null);
   const [cargos, setCargos] = useState<CargoPoliticoDB[]>([]);
 
   const [formData, setFormData] = useState<Partial<CandidatoDB>>({
@@ -70,8 +68,6 @@ export default function CandidatoModal({
     cor_botao: "#2563eb",
     ativo: true,
   });
-
-  // Estado separado para os conjuntos de molduras
   const [molduras, setMolduras] = useState<MolduraSet[]>([
     { ...MOLDURA_VAZIA, label: "Moldura 1" },
   ]);
@@ -110,8 +106,6 @@ export default function CandidatoModal({
         url_foto_perfil: candidato.url_foto_perfil || "",
         cargo_id: candidato.cargo_id || "",
       });
-
-      // Carrega os conjuntos de molduras do JSONB
       const moldurasExistentes = candidato.molduras as
         | MolduraSet[]
         | undefined;
@@ -135,10 +129,6 @@ export default function CandidatoModal({
       }
     }
   }, [candidato]);
-
-  // =========================
-  // Upload de foto de perfil
-  // =========================
   const handleUploadPerfil = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !formData.slug) return;
@@ -166,10 +156,6 @@ export default function CandidatoModal({
       setUploadingPerfil(false);
     }
   };
-
-  // =========================
-  // Upload de moldura (stories ou feed) para um conjunto específico
-  // =========================
   const handleUploadMoldura = async (
     e: ChangeEvent<HTMLInputElement>,
     index: number,
@@ -210,10 +196,6 @@ export default function CandidatoModal({
       setUploadingMoldura(null);
     }
   };
-
-  // =========================
-  // Gerenciar conjuntos
-  // =========================
   const adicionarMoldura = () => {
     if (molduras.length >= MAX_MOLDURAS) return;
     setMolduras((prev) => [
@@ -264,10 +246,6 @@ export default function CandidatoModal({
       return updated;
     });
   };
-
-  // =========================
-  // Salvar
-  // =========================
   const handleSalvar = async () => {
     if (!formData.slug) return alert("O Slug é obrigatório!");
     if (!formData.cargo_id) return alert("Selecione o Cargo do Candidato!");
@@ -275,8 +253,6 @@ export default function CandidatoModal({
     try {
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
-
-      // Pega a primeira moldura para manter retrocompatibilidade nas colunas antigas
       const primeiraMoldura = molduras[0] || MOLDURA_VAZIA;
 
       const payload: Partial<CandidatoDB> = {
@@ -303,7 +279,6 @@ export default function CandidatoModal({
         // Retrocompatibilidade: mantém colunas antigas com a primeira moldura
         url_moldura: primeiraMoldura.stories || "",
         url_moldura_feed: primeiraMoldura.feed || "",
-        // Novo JSONB com todos os conjuntos
         molduras: molduras.filter((m) => m.stories || m.feed || m.perfil),
       };
 
@@ -369,14 +344,12 @@ export default function CandidatoModal({
         </header>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-10">
-          {/* ===== SEÇÃO 1: IDENTIDADE ===== */}
           <section className="space-y-4">
             <SectionTitle
               icon={<User size={14} className="text-blue-500" />}
               label="Candidato & Foto de Perfil"
             />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start bg-slate-50 p-6 rounded-[2rem] border border-slate-200">
-              {/* Foto de perfil */}
               <div className="flex flex-col items-center justify-center space-y-2 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm h-full min-h-[180px]">
                 <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
                   Foto de Perfil
@@ -417,7 +390,6 @@ export default function CandidatoModal({
                 </div>
               </div>
 
-              {/* Inputs */}
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputField
                   label="Nome na Urna"
@@ -493,7 +465,6 @@ export default function CandidatoModal({
             </div>
           </section>
 
-          {/* ===== SEÇÃO 2: MOLDURAS ===== */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <SectionTitle
@@ -516,7 +487,6 @@ export default function CandidatoModal({
                   key={index}
                   className="bg-slate-50 p-5 rounded-[2rem] border border-slate-200 space-y-4"
                 >
-                  {/* Header do conjunto */}
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <span className="shrink-0 w-7 h-7 bg-blue-600 text-white rounded-lg flex items-center justify-center text-xs font-black">
@@ -540,7 +510,6 @@ export default function CandidatoModal({
                     )}
                   </div>
 
-                  {/* Upload stories + feed */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {(["stories", "feed", "perfil"] as const).map((tipo) => {
                       const uploadKey = `${index}-${tipo}`;
@@ -627,7 +596,6 @@ export default function CandidatoModal({
             </div>
           </section>
 
-          {/* ===== SEÇÃO 3: CORES ===== */}
           <section className="space-y-4">
             <SectionTitle
               icon={<Palette size={14} className="text-blue-500" />}
@@ -698,8 +666,6 @@ export default function CandidatoModal({
     </div>
   );
 }
-
-/* --- AUXILIARES --- */
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Erro inesperado";

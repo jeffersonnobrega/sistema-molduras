@@ -106,10 +106,6 @@ export default function CandidatoColinha({
   const handleNomeChange = (cargoId: string, val: string) => {
     setNomesDigitados((prev) => ({ ...prev, [cargoId]: val }));
   };
-
-  // =========================
-  // Gera o PNG como Blob, seguindo o mesmo fluxo do CanvasEditor.
-  // =========================
   const gerarPngBlob = async (): Promise<Blob> => {
     if (!colinhaRef.current) throw new Error("Ref não disponível");
     const blob = await toBlob(colinhaRef.current, {
@@ -167,10 +163,6 @@ export default function CandidatoColinha({
       slug_candidato: candidatoData.id,
     });
   };
-
-  // =========================
-  // DOWNLOAD
-  // =========================
   const handleExport = async () => {
     if (!colinhaRef.current) return;
     setIsExporting(true);
@@ -185,12 +177,6 @@ export default function CandidatoColinha({
       setIsExporting(false);
     }
   };
-
-  // =========================
-  // SHARE — mesma regra do CanvasEditor
-  // Mobile: gaveta nativa | Desktop: WhatsApp Web com link
-  // Sem contabilização de stats
-  // =========================
   const handleShare = async () => {
     if (!colinhaRef.current || isSharing) return;
     setIsSharing(true);
@@ -214,14 +200,12 @@ export default function CandidatoColinha({
         typeof navigator.share === "function" &&
         navigator.canShare?.({ files: [file] })
       ) {
-        // Mobile: abre gaveta nativa com a imagem
         await navigator.share({
           files: [file],
           title: "Minha Colinha",
           text: texto,
         });
       } else {
-        // Desktop: abre WhatsApp Web com texto + link
         window.open(
           `https://web.whatsapp.com/send?text=${encodeURIComponent(texto)}`,
           "_blank",
@@ -414,7 +398,6 @@ export default function CandidatoColinha({
         </div>
       </div>
 
-      {/* BOTÕES */}
       <div className="flex flex-col gap-3">
         <button
           onClick={handleExport}

@@ -1,4 +1,3 @@
-// src/components/landing/Header.tsx
 "use client";
 
 import { useState } from "react";
@@ -29,7 +28,6 @@ export default function Header({ onOpenContact }: HeaderProps) {
           </span>
         </div>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-widest text-slate-500">
           <button
             onClick={() => scrollToSection("beneficios")}
@@ -60,7 +58,6 @@ export default function Header({ onOpenContact }: HeaderProps) {
           </button>
         </div>
 
-        {/* Mobile Burger */}
         <button
           className="md:hidden text-slate-800"
           onClick={() => setIsOpen(!isOpen)}
@@ -69,7 +66,6 @@ export default function Header({ onOpenContact }: HeaderProps) {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-white border-b border-slate-200 px-6 py-6 space-y-4 flex flex-col animate-in fade-in slide-in-from-top-5 duration-200">
           <button

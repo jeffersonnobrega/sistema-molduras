@@ -82,6 +82,20 @@ export default function AdminSessionGuard({
         return;
       }
 
+      const [adminResult, candidatosResult] = await Promise.all([
+        supabase.rpc("is_admin", { uid: data.user.id }),
+        supabase.from("candidatos").select("id").limit(1),
+      ]);
+      const isSuperadmin = adminResult.data === true;
+      const hasManagedCandidate =
+        !candidatosResult.error && (candidatosResult.data?.length || 0) > 0;
+      if (!isSuperadmin && !hasManagedCandidate) {
+        clearTracking();
+        await supabase.auth.signOut({ scope: "local" });
+        window.location.replace("/login?reason=unauthorized");
+        return;
+      }
+
       const now = Date.now();
       const trackedUser = localStorage.getItem(STORAGE_KEYS.user);
       if (trackedUser !== data.user.id) {

@@ -6,7 +6,6 @@ export default function PoliticaPrivacidade() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 py-12 px-6">
       <div className="max-w-3xl mx-auto space-y-10">
-        {/* Header da Página */}
         <header className="space-y-4">
           <Link
             href="/"
@@ -25,7 +24,6 @@ export default function PoliticaPrivacidade() {
 
         <hr className="border-slate-200" />
 
-        {/* Conteúdo Jurídico/Técnico */}
         <article className="space-y-8 text-slate-700 leading-relaxed">
           <section className="space-y-3">
             <h2 className="text-xl font-black uppercase tracking-tight text-slate-800">
@@ -91,7 +89,6 @@ export default function PoliticaPrivacidade() {
           </section>
         </article>
 
-        {/* Rodapé da Página */}
         <footer className="pt-10 border-t border-slate-200 text-center">
           <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">
             SIND - Sistema de Molduras Digitais

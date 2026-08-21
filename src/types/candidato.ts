@@ -1,4 +1,3 @@
-// src/types/candidato.ts
 
 export interface CampoColinha {
   cargo: string;
@@ -22,11 +21,10 @@ export interface CargoPoliticoDB {
   created_at?: string;
 }
 
-// Conjunto de molduras: stories + feed + label definido pelo admin
 export interface MolduraSet {
-  label: string; // ex: "Moldura 1", "Azul", "Vermelha"
-  stories: string; // URL da moldura stories
-  feed: string; // URL da moldura feed (pode ser vazio — usa stories como fallback)
+  label: string;
+  stories: string;
+  feed: string;
 }
 
 export interface CandidatoDB {
@@ -45,7 +43,6 @@ export interface CandidatoDB {
   // Sempre refletem a primeira entrada do array molduras[]
   url_moldura: string;
   url_moldura_feed: string;
-  // Array JSONB com até 3 conjuntos de molduras
   molduras: MolduraSet[];
   config_colinha: ConfigColinha;
   user_id?: string;
@@ -55,8 +52,6 @@ export interface CandidatoDB {
   cor_texto?: string;
   cor_texto_hero?: string;
   cor_botao?: string;
-  // Métricas
-
   total_views: number;
   total_shares: number;
   stats_leads_count: number;

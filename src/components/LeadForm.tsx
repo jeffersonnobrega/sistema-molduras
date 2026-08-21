@@ -3,9 +3,6 @@
 import { ChangeEvent, useState } from "react";
 import Link from "next/link";
 
-/* =========================================================
-   Tipos
-========================================================= */
 
 interface LeadFormProps {
   onSubmit: (data: {
@@ -24,9 +21,6 @@ type PhoneValidationResult = {
   normalizado?: string;
 };
 
-/* =========================================================
-   Constantes
-========================================================= */
 
 const DDI_BRASIL = "55";
 
@@ -100,43 +94,18 @@ const DDDS_VALIDOS = new Set([
   "99",
 ]);
 
-/* =========================================================
-   Helpers de telefone
-========================================================= */
 
-/**
- * Retorna somente os números.
- *
- * Ex:
- * +55 (61) 99999-9999
- * =>
- * 5561999999999
- */
 const somenteNumeros = (value: string) => {
   return value.replace(/\D/g, "");
 };
 
-/**
- * Permite somente caracteres úteis em um telefone:
- *
- * números
- * +
- * espaço
- * ()
- * -
- *
- * Também garante que exista no máximo um "+" e somente
- * no início da entrada.
- */
 const sanitizarEntradaTelefone = (value: string) => {
   let valor = value.replace(/[^\d+\s()-]/g, "");
 
   const possuiMaisNoInicio = valor.startsWith("+");
 
-  // Remove todos os "+" existentes.
   valor = valor.replace(/\+/g, "");
 
-  // Reinsere apenas o "+" inicial, caso existisse.
   if (possuiMaisNoInicio) {
     valor = `+${valor}`;
   }
@@ -144,16 +113,6 @@ const sanitizarEntradaTelefone = (value: string) => {
   return valor.slice(0, 30);
 };
 
-/**
- * Formata um número brasileiro.
- *
- * numeroNacional deve conter:
- *
- * DDD + telefone
- *
- * Ex:
- * 61999999999
- */
 const formatarNumeroBrasileiro = (
   numeroNacional: string,
   incluirDDI: boolean,
@@ -166,7 +125,6 @@ const formatarNumeroBrasileiro = (
     return incluirDDI ? "+55" : "";
   }
 
-  // DDD ainda incompleto
   if (numeros.length === 1) {
     return `${prefixo}(${numeros}`;
   }
@@ -188,21 +146,6 @@ const formatarNumeroBrasileiro = (
   return `${prefixo}(${ddd}) ${parte1}-${parte2}`;
 };
 
-/**
- * Formata o telefone de acordo com o que foi digitado.
- *
- * Brasil:
- * +55 (61) 99999-9999
- *
- * Brasil sem DDI:
- * (61) 99999-9999
- *
- * Exterior:
- * +351912345678
- *
- * Para números internacionais não tentamos adivinhar
- * máscaras de cada país.
- */
 const formatarTelefone = (value: string) => {
   const valor = value.trim();
 
@@ -213,30 +156,18 @@ const formatarTelefone = (value: string) => {
   const numeros = somenteNumeros(valor);
   const possuiDDI = valor.startsWith("+");
 
-  /*
-   * +55 => número brasileiro internacional.
-   */
   if (possuiDDI && numeros.startsWith(DDI_BRASIL)) {
     const numeroNacional = numeros.slice(2);
 
     return formatarNumeroBrasileiro(numeroNacional, true);
   }
 
-  /*
-   * Número sem "+".
-   *
-   * Consideramos como número brasileiro nacional.
-   */
   if (!possuiDDI) {
     return formatarNumeroBrasileiro(numeros, false);
   }
 
-  /*
-   * Outros países.
-   *
- 
-   */
 
+  // Sem metadados por país, números internacionais recebem apenas agrupamento visual.
   const formatarNumeroInternacional = (value: string) => {
     const numeros = somenteNumeros(value);
 
@@ -244,23 +175,10 @@ const formatarTelefone = (value: string) => {
       return "";
     }
 
-    /*
-     * Como não temos uma biblioteca com os metadados telefônicos
-     * de cada país, não tentamos descobrir uma máscara exata.
-     *
-     * Apenas agrupamos os dígitos para melhorar a leitura.
-     */
     if (numeros.length <= 4) {
       return `+${numeros}`;
     }
 
-    /*
-     * Para números maiores, preservamos visualmente o DDI
-     * e agrupamos o restante.
-     *
-     * Ex.:
-     * +351 912 345 678
-     */
     const ddi = numeros.slice(0, 3);
     const numero = numeros.slice(3);
 
@@ -272,22 +190,12 @@ const formatarTelefone = (value: string) => {
   return formatarNumeroInternacional(valor);
 };
 
-/* =========================================================
-   Validação de telefone brasileiro
-========================================================= */
 
 const validarNumeroBrasileiro = (
   numeroNacional: string,
 ): PhoneValidationResult => {
   const numeros = somenteNumeros(numeroNacional);
 
-  /*
-   * DDD (2)
-   * +
-   * celular (9)
-   *
-   * Total = 11
-   */
   if (numeros.length !== 11) {
     return {
       valido: false,
@@ -299,9 +207,6 @@ const validarNumeroBrasileiro = (
   const ddd = numeros.slice(0, 2);
   const celular = numeros.slice(2);
 
-  /*
-   * Validação do DDD.
-   */
   if (!DDDS_VALIDOS.has(ddd)) {
     return {
       valido: false,
@@ -309,10 +214,6 @@ const validarNumeroBrasileiro = (
     };
   }
 
-  /*
-   * Celulares brasileiros possuem 9 dígitos
-   * iniciando com 9.
-   */
   if (celular.length !== 9 || !celular.startsWith("9")) {
     return {
       valido: false,
@@ -321,13 +222,6 @@ const validarNumeroBrasileiro = (
     };
   }
 
-  /*
-   * Impede sequências obviamente inválidas.
-   *
-   * Ex:
-   * 999999999
-   * 111111111
-   */
   if (/^(\d)\1+$/.test(celular)) {
     return {
       valido: false,
@@ -345,31 +239,15 @@ const validarNumeroBrasileiro = (
   return {
     valido: true,
 
-    /*
-     * Sempre salvamos o brasileiro no padrão internacional.
-     *
-     * Ex:
-     * +5561999999999
-     */
     normalizado: `+55${numeros}`,
   };
 };
 
-/* =========================================================
-   Validação internacional
-========================================================= */
 
 const validarNumeroInternacional = (value: string): PhoneValidationResult => {
   const valor = value.trim();
   const numeros = somenteNumeros(valor);
 
-  /*
-   * Para números estrangeiros exigimos o código do país.
-   *
-   * Isso remove a ambiguidade de tentar descobrir
-   * automaticamente se "351..." significa Portugal,
-   * Brasil ou um número nacional qualquer.
-   */
   if (!valor.startsWith("+")) {
     return {
       valido: false,
@@ -378,12 +256,7 @@ const validarNumeroInternacional = (value: string): PhoneValidationResult => {
     };
   }
 
-  /*
-   * E.164 permite no máximo 15 dígitos.
-   *
-   * O limite mínimo abaixo não é uma regra absoluta do
-   * E.164, mas evita números claramente incompletos.
-   */
+  // O padrão E.164 aceita no máximo 15 dígitos; o mínimo barra números incompletos.
   if (numeros.length < 8 || numeros.length > 15) {
     return {
       valido: false,
@@ -391,9 +264,6 @@ const validarNumeroInternacional = (value: string): PhoneValidationResult => {
     };
   }
 
-  /*
-   * Código internacional não começa com zero.
-   */
   if (numeros.startsWith("0")) {
     return {
       valido: false,
@@ -401,9 +271,6 @@ const validarNumeroInternacional = (value: string): PhoneValidationResult => {
     };
   }
 
-  /*
-   * Evita números obviamente falsos.
-   */
   if (/^(\d)\1+$/.test(numeros)) {
     return {
       valido: false,
@@ -417,9 +284,6 @@ const validarNumeroInternacional = (value: string): PhoneValidationResult => {
   };
 };
 
-/* =========================================================
-   Validação geral
-========================================================= */
 
 const validarTelefone = (value: string): PhoneValidationResult => {
   const valor = value.trim();
@@ -434,66 +298,33 @@ const validarTelefone = (value: string): PhoneValidationResult => {
   const numeros = somenteNumeros(valor);
   const possuiDDI = valor.startsWith("+");
 
-  /*
-   * +55
-   *
-   * Brasil com código internacional.
-   */
   if (possuiDDI && numeros.startsWith(DDI_BRASIL)) {
     const numeroNacional = numeros.slice(2);
 
     return validarNumeroBrasileiro(numeroNacional);
   }
 
-  /*
-   * Sem "+"
-   *
-   * Consideramos número brasileiro nacional.
-   */
   if (!possuiDDI) {
     return validarNumeroBrasileiro(numeros);
   }
 
-  /*
-   * Qualquer outro DDI.
-   */
   return validarNumeroInternacional(valor);
 };
 
-/* =========================================================
-   Componente
-========================================================= */
 
 export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
   const [nome, setNome] = useState("");
 
-  /*
-   * Começa com +55 por conveniência,
-   * mas o usuário pode apagar tudo.
-   */
   const [whatsapp, setWhatsapp] = useState("+55 ");
 
   const [lgpdConsent, setLgpdConsent] = useState(false);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* =======================================================
-     Nome
-  ======================================================= */
 
   const handleNomeChange = (e: ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
 
-    /*
-     * Letras, acentos, espaços, hífen e apóstrofo.
-     *
-     * Permite nomes como:
-     *
-     * João da Silva
-     * Ana Paula
-     * Maria d'Ávila
-     * João-Pedro
-     */
     const regex = /^[A-Za-zÀ-ÿ\s'-]{0,100}$/;
 
     if (!regex.test(input)) {
@@ -507,27 +338,11 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
     }
   };
 
-  /* =======================================================
-     Telefone
-  ======================================================= */
 
   const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
 
-    /*
-     * Não aplicamos máscara aqui.
-     *
-     * Isso é intencional.
-     *
-     * Dessa forma o usuário consegue apagar livremente:
-     *
-     * +55
-     * DDD
-     * número
-     * máscara
-     *
-     * sem o React reconstruir caracteres automaticamente.
-     */
+    // A máscara é aplicada no blur para não dificultar correções durante a digitação.
     const sanitizado = sanitizarEntradaTelefone(input);
 
     setWhatsapp(sanitizado);
@@ -538,33 +353,15 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
   };
 
   const handlePhoneBlur = () => {
-    /*
-     * Depois que o usuário termina de editar,
-     * aplicamos a formatação apropriada.
-     */
     const formatado = formatarTelefone(whatsapp);
 
     setWhatsapp(formatado);
   };
 
-  /* =======================================================
-     Validação e submit
-  ======================================================= */
 
   const handleValidarLead = async () => {
     const nomeFinal = nome.trim();
 
-    /*
-     * Remove espaços duplicados.
-     *
-     * Ex:
-     *
-     * "Jefferson    Silva"
-     *
-     * =>
-     *
-     * ["Jefferson", "Silva"]
-     */
     const partesNome = nomeFinal.split(/\s+/).filter(Boolean);
 
     if (partesNome.length < 2) {
@@ -572,9 +369,6 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
       return;
     }
 
-    /*
-     * Validação do WhatsApp.
-     */
     const validacaoTelefone = validarTelefone(whatsapp);
 
     if (!validacaoTelefone.valido || !validacaoTelefone.normalizado) {
@@ -586,9 +380,6 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
       return;
     }
 
-    /*
-     * Consentimento LGPD.
-     */
     if (!lgpdConsent) {
       setErro("O aceite dos termos é obrigatório.");
       return;
@@ -601,18 +392,6 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
       await onSubmit({
         nome: nomeFinal,
 
-        /*
-         * Sempre enviamos o telefone normalizado.
-         *
-         * Brasil:
-         * +5561999999999
-         *
-         * Portugal:
-         * +351912345678
-         *
-         * EUA:
-         * +12025550123
-         */
         whatsapp: validacaoTelefone.normalizado,
 
         lgpd_consent: lgpdConsent,
@@ -625,9 +404,6 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
     }
   };
 
-  /* =======================================================
-     Validação visual do botão
-  ======================================================= */
 
   const partesNome = nome.trim().split(/\s+/).filter(Boolean);
   const numerosTelefone = somenteNumeros(whatsapp);
@@ -642,13 +418,9 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
     lgpdConsent &&
     !loading;
 
-  /* =======================================================
-     Render
-  ======================================================= */
 
   return (
     <div className="w-full bg-white p-6 rounded-3xl shadow-xl border border-slate-100 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
-      {/* Nome */}
       <div className="space-y-1">
         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
           Identificação
@@ -666,7 +438,6 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
         />
       </div>
 
-      {/* WhatsApp */}
       <div className="space-y-1">
         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
           WhatsApp
@@ -690,7 +461,6 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
         </p>
       </div>
 
-      {/* Consentimento LGPD */}
       <div
         className={`flex items-start gap-3 p-3 rounded-2xl border transition-all ${
           lgpdConsent
@@ -733,14 +503,12 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
         </label>
       </div>
 
-      {/* Erro */}
       {erro && (
         <p className="text-[10px] text-red-600 font-bold text-center uppercase animate-pulse italic">
           ⚠️ {erro}
         </p>
       )}
 
-      {/* Botão */}
       <button
         type="button"
         disabled={!isFormValid}

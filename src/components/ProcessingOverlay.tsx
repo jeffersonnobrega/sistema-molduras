@@ -1,4 +1,3 @@
-// src/components/ProcessingOverlay.tsx
 "use client";
 
 export default function ProcessingOverlay() {
@@ -8,7 +7,6 @@ export default function ProcessingOverlay() {
       role="alert"
       aria-live="assertive"
     >
-      {/* Spinner */}
       <div className="relative flex items-center justify-center w-24 h-24">
         <div className="absolute inset-0 rounded-full border-8 border-blue-100 opacity-20"></div>
         <div className="absolute inset-0 rounded-full border-8 border-t-blue-600 animate-spin"></div>
@@ -17,7 +15,6 @@ export default function ProcessingOverlay() {
         </span>
       </div>
 
-      {/* Mensagens */}
       <div className="flex flex-col gap-2 max-w-sm">
         <h2 className="text-2xl font-black text-white uppercase italic leading-tight tracking-tight">
           Quase Pronto!

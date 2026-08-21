@@ -1,4 +1,3 @@
-// src/app/api/contato/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 

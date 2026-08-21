@@ -1,4 +1,3 @@
-// src/components/landing/Hero.tsx
 import { Target, Users2, ShieldCheck, Zap } from "lucide-react";
 
 interface HeroProps {
@@ -9,7 +8,6 @@ export default function Hero({ onOpenContact }: HeroProps) {
   return (
     <section className="pt-32 pb-20 bg-gradient-to-b from-blue-50/50 via-white to-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        {/* Texto Principal */}
         <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
           <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">
             <Zap size={12} className="fill-blue-600" /> Eleições 2026:
@@ -41,11 +39,9 @@ export default function Hero({ onOpenContact }: HeroProps) {
           </div>
         </div>
 
-        {/* Painel Visual / Mockup Interativo (Simulação UX) */}
         <div className="lg:col-span-5 relative flex justify-center">
           <div className="absolute inset-0 bg-blue-200 rounded-full filter blur-3xl opacity-30 -z-10 animate-pulse" />
           <div className="bg-white p-4 rounded-[3rem] border border-slate-200 shadow-2xl max-w-[340px] w-full relative animate-in slide-in-from-bottom-8 duration-700">
-            {/* Header Simulado do Candidato */}
             <div className="flex items-center gap-3 border-b pb-4 mb-4 border-slate-100">
               <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-xs">
                 26
@@ -59,14 +55,12 @@ export default function Hero({ onOpenContact }: HeroProps) {
                 </p>
               </div>
             </div>
-            {/* Canvas de Foto Simulado */}
             <div className="aspect-[4/5] bg-slate-100 rounded-[2rem] overflow-hidden relative border border-slate-200/60 flex items-center justify-center group">
               <img
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop"
                 className="w-full h-full object-cover grayscale-[20%]"
                 alt="Exemplo de Apoiador"
               />
-              {/* Moldura Fictícia Sobreposta */}
               <div className="absolute inset-0 border-[12px] border-blue-600 flex flex-col justify-end p-3 text-white pointer-events-none bg-gradient-to-t from-blue-900/80 via-transparent to-transparent">
                 <span className="font-black tracking-tighter text-xl uppercase leading-none italic">
                   SOU SILVA

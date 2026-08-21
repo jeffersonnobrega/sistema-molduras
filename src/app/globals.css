@@ -28,8 +28,6 @@ body {
 html {
   scroll-behavior: smooth;
 }
-
-/* Cria um "respiro" no topo quando uma âncora é ativada */
 :target {
-  scroll-margin-top: 100px; /* Ajuste esse valor com base na altura da sua Navbar */
+  scroll-margin-top: 100px;
 }

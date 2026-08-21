@@ -19,7 +19,6 @@ interface Lead {
   whatsapp: string;
   candidato_slug: string;
   created_at: string;
-  // ✅ Nova tipagem mapeando o relacionamento trazido pelo JOIN do Supabase
   candidatos?: {
     nome_urna: string;
     url_foto_perfil: string | null;
@@ -27,7 +26,7 @@ interface Lead {
 }
 
 interface LeadsTableProps {
-  slug?: string; // Se for admin, o slug será undefined
+  slug?: string;
 }
 
 export default function LeadsTable({ slug }: LeadsTableProps) {
@@ -37,9 +36,6 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
   const [candidateFilter, setCandidateFilter] = useState(slug || "");
   const [loadError, setLoadError] = useState("");
 
-  /* ===============================
-     CARREGAR LEADS WITH JOIN
-  ================================ */
   const carregarLeads = useCallback(async () => {
     setLoading(true);
     setLoadError("");
@@ -66,9 +62,6 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
     carregarLeads();
   }, [carregarLeads]);
 
-  /* ===============================
-     FILTRO LOCAL
-  ================================ */
   const candidateOptions = Array.from(
     new Map(
       leads.map((lead) => [
@@ -90,9 +83,6 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
     );
   });
 
-  /* ===============================
-     EXPORTAÇÃO EXCEL (.xlsx)
-  ================================ */
   const exportarExcel = () => {
     const dados = leadsFiltrados.map((lead) => ({
       Nome: lead.nome || "Não informado",
@@ -107,7 +97,6 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
 
     const worksheet = XLSX.utils.json_to_sheet(dados);
 
-    // Largura das colunas
     worksheet["!cols"] = [
       { wch: 28 },
       { wch: 20 },
@@ -124,9 +113,6 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
     );
   };
 
-  /* ===============================
-     LOADING
-  ================================ */
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -157,9 +143,7 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* BARRA DE TOOLS */}
       <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between gap-4 bg-slate-50/30">
-        {/* BUSCA */}
         <div className="relative flex-1 max-w-md">
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -190,7 +174,6 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
           </select>
         )}
 
-        {/* INFO + DOWNLOAD */}
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
             Total: {leadsFiltrados.length} Registros
@@ -207,7 +190,6 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
         </div>
       </div>
 
-      {/* TABELA */}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
@@ -263,7 +245,6 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
                     </a>
                   </td>
 
-                  {/* VISÃO GERAL DO ADMIN COM MINIATURA DA FOTO DO CANDIDATO */}
                   {!slug && (
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2.5">

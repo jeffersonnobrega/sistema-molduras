@@ -1,5 +1,4 @@
 "use client";
-// src/components/landing/ContactModal.tsx
 
 import { useState, ChangeEvent } from "react";
 import { X, Send, Loader2 } from "lucide-react";

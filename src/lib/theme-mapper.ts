@@ -1,8 +1,5 @@
 import { CandidatoDB } from "@/types/candidato";
 
-/**
- * Calcula cor de contraste para acessibilidade
- */
 function getContrastColor(hexColor: string) {
   if (!hexColor) return "#ffffff";
   const hex = hexColor.replace("#", "");
@@ -14,7 +11,6 @@ function getContrastColor(hexColor: string) {
 }
 
 export function getCandidatoTheme(candidato: Partial<CandidatoDB>) {
-  // Cores vindas do seu banco de dados
   const corBase = candidato.cor_primaria || "#2563eb";
   const corFundo = candidato.cor_fundo || "#ffffff";
   const corTitulo = candidato.cor_titulo || "#1e293b";
@@ -56,9 +52,9 @@ export function getCandidatoTheme(candidato: Partial<CandidatoDB>) {
       editorBg: withOpacity(corBase, 0.05),
     },
     hero: {
-      title: corTitulo, // Controla "Crie sua foto"
-      accent: corTextoHero, // Controla "Oficial"
-      description: corTexto, // Controla o parágrafo de apoio
+      title: corTitulo,
+      accent: corTextoHero,
+      description: corTexto,
       badgeBg: corFundo,
       badgeText: corTexto,
     },

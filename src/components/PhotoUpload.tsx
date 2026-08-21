@@ -1,10 +1,4 @@
 "use client";
-// src/components/PhotoUpload.tsx
-//
-// Padrão de mercado: aceita qualquer tamanho, comprime no client antes de processar.
-// Remove metadados EXIF (privacidade), redimensiona para max 2048px, comprime para JPEG 0.85.
-// Resultado típico: 12MB → ~400KB em < 500ms, sem alert de rejeição.
-
 import React, { ChangeEvent, useState } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -19,10 +13,9 @@ const ALLOWED_TYPES = [
   "image/heic",
   "image/heif",
 ];
-const MAX_DIMENSION = 2048; // px — suficiente para canvas 1080px com zoom 3x
-const JPEG_QUALITY = 0.85; // 0.85 = visualmente idêntico ao original, ~70% menor
+const MAX_DIMENSION = 2048;
+const JPEG_QUALITY = 0.85;
 
-// Toast de erro amigável (sem alert nativo)
 function showToast(msg: string) {
   const el = document.createElement("div");
   el.textContent = msg;
@@ -40,7 +33,6 @@ function showToast(msg: string) {
   setTimeout(() => el.remove(), 3500);
 }
 
-// Comprime e redimensiona a imagem no client via Canvas API
 async function comprimirImagem(file: File): Promise<File> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -52,7 +44,6 @@ async function comprimirImagem(file: File): Promise<File> {
       img.onload = () => {
         let { width, height } = img;
 
-        // Redimensiona se necessário, mantendo proporção
         if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
           if (width > height) {
             height = Math.round((height * MAX_DIMENSION) / width);
@@ -84,7 +75,6 @@ async function comprimirImagem(file: File): Promise<File> {
               reject(new Error("Falha ao comprimir"));
               return;
             }
-            // Mantém o nome original mas com extensão .jpg
             const nomeBase = file.name.replace(/\.[^/.]+$/, "");
             const fileComprimido = new File([blob], `${nomeBase}.jpg`, {
               type: "image/jpeg",
@@ -97,7 +87,6 @@ async function comprimirImagem(file: File): Promise<File> {
         );
       };
 
-      // Erro amigável: arquivo selecionado não é uma imagem válida
       img.onerror = () => reject(new Error("invalid_image"));
       img.src = dataUrl;
     };
@@ -114,7 +103,6 @@ export default function PhotoUpload({ onImageSelect }: PhotoUploadProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validação de tipo — única rejeição real (arquivo não é imagem)
     const tipoValido =
       ALLOWED_TYPES.includes(file.type) ||
       file.name.toLowerCase().match(/\.(jpg|jpeg|png|webp|heic|heif)$/) !==
@@ -137,10 +125,8 @@ export default function PhotoUpload({ onImageSelect }: PhotoUploadProps) {
           ? "Não foi possível ler essa imagem. Tente outro arquivo."
           : "Erro ao processar a foto. Tente novamente.";
 
-      // Tenta enviar o arquivo original como fallback silencioso
-      // Se for realmente inválido (ex: PDF renomeado), exibe o toast
+      // O cabeçalho impede que um arquivo renomeado seja aceito no fallback.
       try {
-        // Verifica se o arquivo tem cabeçalho de imagem válido antes do fallback
         const buf = await file.slice(0, 4).arrayBuffer();
         const bytes = new Uint8Array(buf);
         const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8;
@@ -152,7 +138,6 @@ export default function PhotoUpload({ onImageSelect }: PhotoUploadProps) {
         const isWebp = bytes[0] === 0x52 && bytes[1] === 0x49; // RIFF header
 
         if (isJpeg || isPng || isWebp) {
-          // Arquivo parece ser uma imagem válida — envia original
           onImageSelect(file);
         } else {
           showToast(msg);
@@ -162,7 +147,6 @@ export default function PhotoUpload({ onImageSelect }: PhotoUploadProps) {
       }
     } finally {
       setIsProcessing(false);
-      // Limpa o input para permitir selecionar a mesma foto novamente
       setTimeout(() => {
         e.target.value = "";
       }, 100);

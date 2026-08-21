@@ -232,24 +232,36 @@ Situação atual: bucket público `molduras`, limite de 10 MB e MIME types restr
 
 Prioridade: média-alta.
 
+Status: [x] Concluída e validada no Supabase e na aplicação em 19/08/2026.
+
+- [x] Mapear consumidores de leitura no código.
+- [x] Confirmar que dashboard e exportação usam `get_accessible_leads`.
+- [x] Preparar `supabase/tests/SEC007_AUDIT.md` com consultas somente de leitura.
+- [x] Auditar políticas, grants, colunas públicas e definição do RPC no banco.
+- [x] Preparar migration e alterações da aplicação com base no inventário confirmado.
+- [x] Criar `supabase/migrations/20260819_reduce_public_read_surface.sql`.
+- [x] Criar `supabase/tests/SEC007_MANUAL_TESTS.md`.
+- [x] Aplicar a migration e validar o catálogo final.
+- [x] Concluir os testes manuais.
+
 ### Leads
 
-- [ ] Revogar `SELECT` direto de `authenticated` em `public.leads` após validar o RPC.
-- [ ] Remover a política direta de leitura de leads.
-- [ ] Manter apenas `EXECUTE` em `get_accessible_leads`.
-- [ ] Validar dashboard e exportação para superadmin e gestor.
+- [x] Revogar `SELECT` direto de `authenticated` em `public.leads` após validar o RPC.
+- [x] Remover a política direta de leitura de leads.
+- [x] Manter apenas `EXECUTE` em `get_accessible_leads`.
+- [x] Validar dashboard e exportação para superadmin e gestor.
 
 ### Candidatos
 
-- [ ] Parar de usar `select('*')` na página pública.
-- [ ] Criar view/RPC público somente com os campos necessários.
-- [ ] Não expor `user_id` ou campos administrativos a `anon`.
-- [ ] Usar `security_invoker = true` em views que devam obedecer à RLS.
+- [x] Parar de usar `select('*')` na página pública.
+- [x] Criar RPC público somente com os campos necessários.
+- [x] Não expor `user_id` ou campos administrativos a `anon`.
+- [x] Não criar view; o RPC usa `SECURITY DEFINER`, `search_path = ''` e ACL explícita.
 
 ### Outras leituras públicas
 
-- [ ] Confirmar ausência de PII/segredos em `cargos_politicos`, `presidenciados`, `colinha_config` e `colinha_travados`.
-- [ ] Substituir grants ao role `public` por grants explícitos quando apropriado.
+- [x] Confirmar e limitar os campos públicos de `cargos_politicos`, `presidenciados`, `colinha_config` e `colinha_travados`.
+- [x] Substituir grants ao role `public` por grants explícitos quando apropriado.
 
 ---
 
@@ -257,15 +269,20 @@ Prioridade: média-alta.
 
 Prioridade: média-alta.
 
+Status: [~] Configurações, URLs exatas e testes manuais validados em 20/08/2026; falta somente localizar e auditar tecnicamente a exigência AAL2 reportada como implementada.
+
+Decisão do P.O.: exigir senha de no mínimo 8 caracteres, em substituição aos 12 caracteres inicialmente propostos.
+
 - [x] Logout client-side após 30 minutos de inatividade.
 - [x] Duração absoluta client-side de 8 horas.
-- [ ] Configurar limites também no Supabase Auth, se disponíveis no plano.
-- [ ] Exigir senha de no mínimo 12 caracteres.
-- [ ] Ativar proteção contra senhas vazadas.
-- [ ] Habilitar MFA para superadmins.
-- [ ] Revisar `Site URL` e Redirect URLs exatas, sem curingas amplos.
-- [ ] Revalidar autorização nas páginas/rotas sensíveis, sem depender apenas do proxy.
-- [ ] Testar logout em múltiplas abas e remoção de usuário com sessão ativa.
+- [!] Limites server-side de sessão indisponíveis no plano atual; mitigação client-side mantida.
+- [x] Exigir senha de no mínimo 8 caracteres conforme decisão do P.O.; Supabase configurado também com minúsculas, maiúsculas, números e símbolos.
+- [!] Proteção contra senhas vazadas indisponível no plano atual.
+- [~] TOTP habilitado e testado com ao menos dois superadmins; exigência `AAL2` reportada como OK, mas sem implementação localizada no repositório.
+- [x] `Site URL`, rotas de produção e localhost conferidos; curingas amplos removidos.
+- [x] Revalidar autorização nas páginas/rotas sensíveis, sem depender apenas do proxy.
+- [x] Testar logout em múltiplas abas e remoção de usuário com sessão ativa.
+- [x] Preparar `supabase/tests/SEC008_AUTH_CHECKLIST.md`.
 
 ---
 

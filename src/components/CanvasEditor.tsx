@@ -10,7 +10,7 @@ interface MolduraSet {
   label: string;
   stories: string;
   feed: string;
-  perfil?: string; // Nova propriedade opcional para retrocompatibilidade
+  perfil?: string;
 }
 
 interface CanvasEditorProps {
@@ -106,7 +106,6 @@ export default function CanvasEditor({
   molduras,
   corPrimaria = "#2563eb",
 }: CanvasEditorProps) {
-  // Estado atualizado para aceitar o formato "perfil"
   const [format, setFormat] = useState<"stories" | "feed" | "perfil">(
     "stories",
   );
@@ -135,8 +134,6 @@ export default function CanvasEditor({
     feed: "",
     perfil: "",
   };
-
-  // Resgate dinâmico do endpoint da imagem com base no formato selecionado
   const activeFrameUrl =
     format === "stories"
       ? molduraAtual.stories
@@ -145,12 +142,10 @@ export default function CanvasEditor({
         : molduraAtual.feed || molduraAtual.stories;
 
   const frameKey = `${molduraIndex}-${format}`;
-
-  // Definição das dimensões padrão (Perfil segue 1080x1080)
   const defaultDims: FrameDimensions =
     format === "stories"
       ? { width: 1080, height: 1920 }
-      : { width: 1080, height: 1080 }; // Tanto feed quanto perfil adotam 1080x1080
+      : { width: 1080, height: 1080 };
 
   const currentDims = dimsMap[frameKey] ?? defaultDims;
   const aspectRatioCss = toCssAspectRatio(
@@ -201,8 +196,6 @@ export default function CanvasEditor({
       ctx.clearRect(0, 0, W, H);
 
       ctx.save();
-
-      // Formato perfil: aplica máscara circular antes de desenhar a foto
       if (fmt === "perfil") {
         const radius = Math.min(W, H) / 2;
         ctx.beginPath();
@@ -454,7 +447,6 @@ export default function CanvasEditor({
 
   return (
     <div className="flex flex-col gap-5 max-w-85 mx-auto">
-      {/* SELETOR DE FORMATO EXPANDIDO COM PERFIL */}
       <div className="flex bg-slate-100 p-1 rounded-2xl gap-1">
         <button
           onClick={() => {
@@ -485,7 +477,6 @@ export default function CanvasEditor({
         </button>
       </div>
 
-      {/* SELETOR DE MOLDURAS */}
       {temMultiplasMolduras && (
         <div className="flex items-center justify-center gap-3">
           {molduras.map((m, i) => {
@@ -540,7 +531,6 @@ export default function CanvasEditor({
         </div>
       )}
 
-      {/* CANVAS CONTAINER */}
       <div
         className="relative w-full rounded-3xl overflow-hidden bg-gray-200 select-none"
         onMouseDown={start}
@@ -580,7 +570,6 @@ export default function CanvasEditor({
         {hasPhoto && <PinchHint />}
       </div>
 
-      {/* CONTROLES */}
       {hasPhoto && (
         <div className="space-y-5">
           <div className="bg-white p-4 rounded-2xl shadow border space-y-4">

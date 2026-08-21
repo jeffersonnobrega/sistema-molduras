@@ -1,15 +1,8 @@
-// tests/performance.test.ts
-// Testes de performance — SIND Sistema de Molduras
-// Stack: Vitest + performance hooks nativos do Node
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ============================================================
-// 1. CANVAS — Tempo de renderização
-// ============================================================
 describe("CanvasEditor — Performance de renderização", () => {
   it("deve renderizar o canvas em menos de 100ms para imagem padrão", async () => {
-    // Simula o drawCanvas com dimensões reais de produção
     const drawCanvas = (
       width: number,
       height: number,
@@ -22,7 +15,6 @@ describe("CanvasEditor — Performance de renderização", () => {
       const scaledW = imgWidth * scale;
       const scaledH = imgHeight * scale;
 
-      // Simula as operações matemáticas do drawCanvas real
       const offsetX = (width - scaledW) / 2;
       const offsetY = (height - scaledH) / 2;
       const zoom = 1;
@@ -34,7 +26,6 @@ describe("CanvasEditor — Performance de renderização", () => {
       return performance.now() - start;
     };
 
-    // Stories: 1080x1920, foto típica de celular 4032x3024
     const duracao = drawCanvas(1080, 1920, 4032, 3024);
     expect(duracao).toBeLessThan(100);
   });
@@ -48,7 +39,6 @@ describe("CanvasEditor — Performance de renderização", () => {
     ) => Math.max(cW / iW, cH / iH);
 
     const scale = calcularScaleCover(1080, 1920, 4032, 3024);
-    // A imagem deve cobrir o canvas inteiro
     expect(4032 * scale).toBeGreaterThanOrEqual(1080);
     expect(3024 * scale).toBeGreaterThanOrEqual(1920);
   });
@@ -74,7 +64,6 @@ describe("CanvasEditor — Performance de renderização", () => {
     let lastX = 0;
     let lastY = 0;
 
-    // Simula 60 eventos de drag (1 segundo a 60fps)
     for (let i = 0; i < 60; i++) {
       const newX = i * 2;
       const newY = i * 1.5;
@@ -96,7 +85,7 @@ describe("CanvasEditor — Performance de renderização", () => {
     let lastDist = 100;
 
     for (let i = 0; i < 60; i++) {
-      const dist = 100 + i * 5; // Abrindo os dedos até atingir o zoom máximo
+      const dist = 100 + i * 5;
       const delta = dist / lastDist;
       zoom = Math.min(3, Math.max(0.5, zoom * delta));
       lastDist = dist;
@@ -104,13 +93,10 @@ describe("CanvasEditor — Performance de renderização", () => {
 
     const duracao = performance.now() - start;
     expect(duracao).toBeLessThan(200);
-    expect(zoom).toBe(3); // Deve ter chegado no máximo
+    expect(zoom).toBe(3);
   });
 });
 
-// ============================================================
-// 2. LEADFORM — Validação sem travamento
-// ============================================================
 describe("LeadForm — Performance de validação", () => {
   it("deve validar 1000 números de telefone em menos de 50ms", () => {
     const dddsValidos = new Set([
@@ -234,13 +220,10 @@ describe("LeadForm — Performance de validação", () => {
       formatarBrasileiro("+5511987654321");
     }
     const duracao = performance.now() - start;
-    expect(duracao / 100).toBeLessThan(1); // Menos de 1ms por chamada
+    expect(duracao / 100).toBeLessThan(1);
   });
 });
 
-// ============================================================
-// 3. STATS COUNTER — Atualização em tempo real
-// ============================================================
 describe("StatsCounter — Performance de atualização", () => {
   it("deve processar 100 atualizações de stats em menos de 10ms", () => {
     const processarUpdate = (
@@ -269,9 +252,6 @@ describe("StatsCounter — Performance de atualização", () => {
   });
 });
 
-// ============================================================
-// 4. LEADSFORM — Exportação Excel
-// ============================================================
 describe("LeadsTable — Performance de exportação", () => {
   it("deve montar dados de 5000 leads para Excel em menos de 500ms", () => {
     const gerarLeads = (n: number) =>
@@ -322,13 +302,10 @@ describe("LeadsTable — Performance de exportação", () => {
 
     const duracao = performance.now() - start;
     expect(duracao).toBeLessThan(100);
-    expect(filtrados.length).toBe(500); // 10% dos leads
+    expect(filtrados.length).toBe(500);
   });
 });
 
-// ============================================================
-// 5. THEME MAPPER — Performance de geração de tema
-// ============================================================
 describe("getCandidatoTheme — Performance", () => {
   it("deve gerar tema completo em menos de 5ms", async () => {
     const { getCandidatoTheme } = await import("@/lib/theme-mapper");
@@ -348,25 +325,20 @@ describe("getCandidatoTheme — Performance", () => {
     }
     const duracao = performance.now() - start;
 
-    expect(duracao / 100).toBeLessThan(5); // Menos de 5ms por geração
+    expect(duracao / 100).toBeLessThan(5);
   });
 
   it("deve calcular contraste corretamente para acessibilidade", async () => {
     const { getCandidatoTheme } = await import("@/lib/theme-mapper");
 
-    // Cor clara — deve retornar texto escuro
     const temaClaro = getCandidatoTheme({ cor_botao: "#ffffff" });
     expect(temaClaro.editor.downloadBtn.text).toBe("#000000");
 
-    // Cor escura — deve retornar texto claro
     const temaEscuro = getCandidatoTheme({ cor_botao: "#000000" });
     expect(temaEscuro.editor.downloadBtn.text).toBe("#ffffff");
   });
 });
 
-// ============================================================
-// 6. SUPABASE RPC — Simulação de latência
-// ============================================================
 describe("Supabase RPCs — Tempo de resposta esperado", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -378,7 +350,6 @@ describe("Supabase RPCs — Tempo de resposta esperado", () => {
 
     const start = performance.now();
 
-    // Simula o ViewCounter — fire and forget
     mockSupabase
       .rpc("increment_views_count", { slug_candidato: "pepa" })
       .then(({ error }: { error: unknown }) => {
@@ -387,7 +358,6 @@ describe("Supabase RPCs — Tempo de resposta esperado", () => {
 
     const duracao = performance.now() - start;
 
-    // O componente não deve bloquear a renderização
     expect(duracao).toBeLessThan(5);
     expect(mockRpc).toHaveBeenCalledWith("increment_views_count", {
       slug_candidato: "pepa",
@@ -402,9 +372,7 @@ describe("Supabase RPCs — Tempo de resposta esperado", () => {
     const mockSupabase = { rpc: mockRpc, from: mockFrom };
 
     const handleSubmit = async (data: { nome: string; whatsapp: string }) => {
-      // Salva o lead
       await mockSupabase.from("leads").insert([data]);
-      // Incrementa counter de forma não-bloqueante
       mockSupabase
         .rpc("increment_leads_count", { slug_candidato: "pepa" })
         .then(({ error }: { error: unknown }) => {

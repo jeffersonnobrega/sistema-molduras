@@ -1,4 +1,3 @@
-// src/components/landing/HowItWorks.tsx
 import { UploadCloud, UserCheck, Share2 } from "lucide-react";
 
 export default function HowItWorks() {
@@ -29,7 +28,6 @@ export default function HowItWorks() {
       className="py-24 bg-slate-50 border-t border-slate-200/60 font-sans"
     >
       <div className="max-w-7xl mx-auto px-6">
-        {/* Alinhamento de Cabeçalho */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-20">
           <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest">
             Fluxo Simplificado
@@ -43,14 +41,12 @@ export default function HowItWorks() {
           </p>
         </div>
 
-        {/* Grid de Passos (Timeline Responsiva) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 relative">
           {steps.map((step, idx) => (
             <div
               key={idx}
               className="flex flex-col items-center lg:items-start text-center lg:text-left relative group"
             >
-              {/* Ícone e Indicador do Passo */}
               <div className="flex items-center gap-4 mb-6">
                 <div className="p-5 bg-white border border-slate-200 rounded-[1.8rem] shadow-sm group-hover:border-blue-500 group-hover:shadow-md transition-all relative z-10">
                   {step.icon}
@@ -60,7 +56,6 @@ export default function HowItWorks() {
                 </span>
               </div>
 
-              {/* Textos */}
               <div className="space-y-2 max-w-sm">
                 <h3 className="text-xl font-black uppercase text-slate-800 tracking-tight">
                   {step.title}
@@ -70,7 +65,6 @@ export default function HowItWorks() {
                 </p>
               </div>
 
-              {/* Linha conectora visual (Apenas para Desktop) */}
               {idx < 2 && (
                 <div className="hidden lg:block absolute top-10 left-[40%] w-[50%] h-[2px] bg-gradient-to-r from-slate-200 to-transparent -z-0" />
               )}
