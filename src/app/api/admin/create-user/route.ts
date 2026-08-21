@@ -1,9 +1,9 @@
 import {
-  createClient,
   type SupabaseClient,
   type User,
 } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeSuperadmin } from "@/lib/admin-api-auth";
 
 async function findUserByEmail(
   supabaseAdmin: SupabaseClient,
@@ -27,22 +27,18 @@ async function findUserByEmail(
 }
 
 export async function POST(req: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const appUrl = req.nextUrl.origin.replace(/\/$/, "");
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    return NextResponse.json(
-      { error: "Configuração do servidor incompleta." },
-      { status: 500 },
-    );
-  }
-
-  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
   try {
+    const authorization = await authorizeSuperadmin(req);
+    if ("error" in authorization) {
+      return NextResponse.json(
+        { error: authorization.error },
+        { status: authorization.status },
+      );
+    }
+    const { supabaseAdmin, user: caller } = authorization;
+
     let body: Record<string, unknown>;
     try {
       body = await req.json();
@@ -92,27 +88,6 @@ export async function POST(req: NextRequest) {
         { error: "Selecione no máximo 100 candidatos por operação." },
         { status: 400 },
       );
-    }
-
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-    }
-    const { data: callerData, error: callerError } =
-      await supabaseAdmin.auth.getUser(authHeader.slice("Bearer ".length));
-    if (callerError || !callerData.user) {
-      return NextResponse.json(
-        { error: "Token inválido ou expirado." },
-        { status: 403 },
-      );
-    }
-
-    const { data: isAdmin, error: adminError } = await supabaseAdmin.rpc(
-      "is_admin",
-      { uid: callerData.user.id },
-    );
-    if (adminError || !isAdmin) {
-      return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
 
     let candidatos: { id: string; slug: string }[] = [];
@@ -220,7 +195,7 @@ export async function POST(req: NextRequest) {
               user_id: user.id,
               candidato_id: candidato.id,
               nome,
-              created_by: callerData.user.id,
+              created_by: caller.id,
             })),
           );
         if (vinculoError) {

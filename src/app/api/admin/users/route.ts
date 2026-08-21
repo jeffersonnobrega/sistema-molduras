@@ -1,27 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-
-function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
-}
-
-async function authorize(req: NextRequest) {
-  const supabaseAdmin = getAdminClient();
-  if (!supabaseAdmin) return { error: "Configuração incompleta.", status: 500 } as const;
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) return { error: "Não autorizado.", status: 401 } as const;
-  const { data, error } = await supabaseAdmin.auth.getUser(authHeader.slice("Bearer ".length));
-  if (error || !data.user) return { error: "Sessão inválida.", status: 401 } as const;
-  const { data: isAdmin, error: adminError } = await supabaseAdmin.rpc("is_admin", { uid: data.user.id });
-  if (adminError || !isAdmin) return { error: "Acesso negado.", status: 403 } as const;
-  return { supabaseAdmin, user: data.user };
-}
+import { authorizeSuperadmin } from "@/lib/admin-api-auth";
 
 export async function GET(req: NextRequest) {
-  const auth = await authorize(req);
+  const auth = await authorizeSuperadmin(req);
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   const [vinculosResult, adminsResult] = await Promise.all([
@@ -60,7 +41,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const auth = await authorize(req);
+  const auth = await authorizeSuperadmin(req);
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   let body: { vinculo_id?: string; user_id?: string; tipo?: "admin" | "candidato" };

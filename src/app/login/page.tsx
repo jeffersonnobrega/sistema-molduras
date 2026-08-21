@@ -19,6 +19,8 @@ export default function LoginPage() {
       setError("Sessão encerrada após 30 minutos sem atividade.");
     } else if (reason === "expired") {
       setError("Sessão encerrada após atingir o limite de 8 horas.");
+    } else if (reason === "session_error") {
+      setError("Não foi possível validar a segurança da sessão. Entre novamente.");
     }
   }, []);
 

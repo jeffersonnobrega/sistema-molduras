@@ -269,7 +269,7 @@ Status: [x] Concluída e validada no Supabase e na aplicação em 19/08/2026.
 
 Prioridade: média-alta.
 
-Status: [~] Configurações, URLs exatas e testes manuais validados em 20/08/2026; falta somente localizar e auditar tecnicamente a exigência AAL2 reportada como implementada.
+Status: [~] Configurações e fluxos anteriores validados; enforcement AAL2 preparado em 20/08/2026 e pendente de aplicação e testes manuais.
 
 Decisão do P.O.: exigir senha de no mínimo 8 caracteres, em substituição aos 12 caracteres inicialmente propostos.
 
@@ -278,7 +278,7 @@ Decisão do P.O.: exigir senha de no mínimo 8 caracteres, em substituição aos
 - [!] Limites server-side de sessão indisponíveis no plano atual; mitigação client-side mantida.
 - [x] Exigir senha de no mínimo 8 caracteres conforme decisão do P.O.; Supabase configurado também com minúsculas, maiúsculas, números e símbolos.
 - [!] Proteção contra senhas vazadas indisponível no plano atual.
-- [~] TOTP habilitado e testado com ao menos dois superadmins; exigência `AAL2` reportada como OK, mas sem implementação localizada no repositório.
+- [~] TOTP habilitado; migration, desafio MFA, guard e APIs com exigência AAL2 preparados, aguardando aplicação e validação manual.
 - [x] `Site URL`, rotas de produção e localhost conferidos; curingas amplos removidos.
 - [x] Revalidar autorização nas páginas/rotas sensíveis, sem depender apenas do proxy.
 - [x] Testar logout em múltiplas abas e remoção de usuário com sessão ativa.

@@ -8,6 +8,7 @@ const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const ABSOLUTE_TIMEOUT_MS = 8 * 60 * 60 * 1000;
 const ACTIVITY_WRITE_INTERVAL_MS = 10 * 1000;
 const CHECK_INTERVAL_MS = 15 * 1000;
+const AUTH_FLOW_ROUTES = ["/admin/reset-password", "/admin/mfa"];
 
 const STORAGE_KEYS = {
   user: "sind:admin-session:user",
@@ -21,12 +22,15 @@ export default function AdminSessionGuard({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [ready, setReady] = useState(pathname === "/admin/reset-password");
+  const isAuthFlow = AUTH_FLOW_ROUTES.includes(pathname);
+  const [ready, setReady] = useState(isAuthFlow);
   const loggingOut = useRef(false);
   const lastWrite = useRef(0);
 
   useEffect(() => {
-    if (pathname === "/admin/reset-password") return;
+    if (isAuthFlow) {
+      return;
+    }
 
     const clearTracking = () => {
       Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
@@ -89,6 +93,25 @@ export default function AdminSessionGuard({
       const isSuperadmin = adminResult.data === true;
       const hasManagedCandidate =
         !candidatosResult.error && (candidatosResult.data?.length || 0) > 0;
+
+      if (isSuperadmin) {
+        const { data: assurance, error: assuranceError } =
+          await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+        if (assuranceError) {
+          clearTracking();
+          await supabase.auth.signOut({ scope: "local" });
+          window.location.replace("/login?reason=session_error");
+          return;
+        }
+
+        if (assurance?.currentLevel !== "aal2") {
+          const next = encodeURIComponent(pathname);
+          window.location.replace(`/admin/mfa?next=${next}`);
+          return;
+        }
+      }
+
       if (!isSuperadmin && !hasManagedCandidate) {
         clearTracking();
         await supabase.auth.signOut({ scope: "local" });
@@ -148,7 +171,7 @@ export default function AdminSessionGuard({
       window.removeEventListener("storage", onStorage);
       window.clearInterval(interval);
     };
-  }, [pathname]);
+  }, [isAuthFlow, pathname]);
 
   if (!ready) {
     return (

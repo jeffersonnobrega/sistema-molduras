@@ -40,7 +40,7 @@ aplicação. Nunca registre o valor real do parâmetro `token` neste documento.
 - [x] Decisão definida: MFA será obrigatório para todos os superadmins.
 - [x] Ao menos dois superadmins cadastrados e testados para reduzir risco de bloqueio.
 - [x] Cadastro, desafio, recuperação e remoção de fator testados.
-- [~] Exigência de sessão `AAL2` reportada como implementada e validada, mas duas auditorias locais em 20/08/2026 não encontraram checagem de `aal`, `getAuthenticatorAssuranceLevel`, desafio ou verificação MFA no código/migrations. Pendente localizar eventual implementação aplicada diretamente no banco.
+- [~] Auditoria confirmou ausência de enforcement AAL2 no banco. A migration `20260820_enforce_superadmin_aal2.sql`, a tela `/admin/mfa` e a validação das APIs foram preparadas em 20/08/2026; falta aplicar a migration e concluir `SEC008_AAL2_MANUAL_TESTS.md`.
 
 ## Testes da aplicação
 
