@@ -34,8 +34,18 @@ SEC010-C foi implementada em 21/08/2026:
 - ESLint aprovado com zero erros e zero avisos;
 - 30 testes e build aprovados.
 
-A fase aguarda somente o checklist funcional
-`supabase/tests/SEC010_LINT_MANUAL_TESTS.md`.
+O checklist funcional `supabase/tests/SEC010_LINT_MANUAL_TESTS.md` foi
+integralmente aprovado em produção em 22/08/2026. A SEC010-C está concluída.
+
+Os nove cenários reais de segurança previstos na SEC010-D foram aprovados em
+22/08/2026. A fase está concluída sem necessidade de nova correção de RLS.
+
+O workflow `.github/workflows/quality.yml` da SEC010-E foi criado em
+22/08/2026 com permissão somente de leitura, valores sintéticos no build e as
+etapas `npm ci`, lint, testes, build e auditoria. A validação local aprovou o
+ESLint, 30 testes, o build de produção e `npm audit` com zero vulnerabilidades.
+A fase aguarda somente a primeira execução aprovada no GitHub Actions após um
+`push` ou `pull_request`.
 
 ## Auditoria confirmada
 

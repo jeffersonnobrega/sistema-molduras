@@ -16,7 +16,7 @@ do Canvas. Execute em uma campanha de teste.
 
 ## Página pública e Canvas
 
-- [ ] Imagem demonstrativa da landing aparece corretamente.
+- [x] Imagem demonstrativa da landing aparece corretamente.
 - [x] Página de candidato carrega a moldura inicial.
 - [x] Trocar entre Stories, Feed e Perfil atualiza a moldura correta.
 - [x] Trocar entre conjuntos de molduras não mantém a imagem anterior.
@@ -26,4 +26,4 @@ do Canvas. Execute em uma campanha de teste.
 
 ## Resultado
 
-- [ ] Validação funcional aprovada e SEC010-C concluída.
+- [x] Validação funcional aprovada e SEC010-C concluída em 22/08/2026.
