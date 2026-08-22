@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import PhotoUpload from "./PhotoUpload";
 import LeadForm from "./LeadForm";
 import { supabase } from "@/lib/supabase";
-import { Layout, Square, UserSquare2, RefreshCw } from "lucide-react";
+import { Layout, Square, UserSquare2 } from "lucide-react";
 
 interface MolduraSet {
   label: string;
@@ -127,6 +127,13 @@ export default function CanvasEditor({
   const frameImgRef = useRef<HTMLImageElement | null>(null);
   const lastFrameKey = useRef("");
   const pinchRef = useRef({ active: false, lastDist: 0, lastZoom: 1 });
+  const renderStateRef = useRef<{
+    dims: FrameDimensions;
+    zoom: number;
+    offset: { x: number; y: number };
+    format: "stories" | "feed" | "perfil";
+    hasPhoto: boolean;
+  } | null>(null);
 
   const molduraAtual = molduras[molduraIndex] ?? {
     label: "",
@@ -153,6 +160,16 @@ export default function CanvasEditor({
     currentDims.height,
   );
   const mobile = isMobileDevice();
+
+  useEffect(() => {
+    renderStateRef.current = {
+      dims: currentDims,
+      zoom,
+      offset,
+      format,
+      hasPhoto,
+    };
+  }, [currentDims, format, hasPhoto, offset, zoom]);
 
   useEffect(() => {
     molduras.forEach((m, i) => {
@@ -250,40 +267,47 @@ export default function CanvasEditor({
   }, [zoom, offset, format, molduraIndex, hasPhoto, currentDims, drawCanvas]);
 
   useEffect(() => {
-    if (!activeFrameUrl) {
-      frameImgRef.current = null;
-      if (userImgRef.current && hasPhoto) {
-        drawCanvas(userImgRef.current, null, currentDims, zoom, offset, format);
+    let cancelled = false;
+    const drawWithFrame = (frame: HTMLImageElement | null) => {
+      if (cancelled) return;
+      frameImgRef.current = frame;
+      const state = renderStateRef.current;
+      if (userImgRef.current && state?.hasPhoto) {
+        drawCanvas(
+          userImgRef.current,
+          frame,
+          state.dims,
+          state.zoom,
+          state.offset,
+          state.format,
+        );
       }
-      return;
+    };
+
+    if (!activeFrameUrl) {
+      lastFrameKey.current = "";
+      drawWithFrame(null);
+      return () => {
+        cancelled = true;
+      };
     }
-    if (lastFrameKey.current === frameKey && frameImgRef.current) return;
-    lastFrameKey.current = frameKey;
+
+    const loadKey = `${frameKey}:${activeFrameUrl}`;
+    if (lastFrameKey.current === loadKey) return;
+    lastFrameKey.current = loadKey;
 
     loadImage(`${activeFrameUrl}?cb=${Date.now()}`, "anonymous")
-      .then((img) => {
-        frameImgRef.current = img;
-        if (userImgRef.current && hasPhoto) {
-          drawCanvas(
-            userImgRef.current,
-            img,
-            currentDims,
-            zoom,
-            offset,
-            format,
-          );
-        }
-      })
+      .then(drawWithFrame)
       .catch(() => {
         loadImage(activeFrameUrl, "anonymous")
-          .then((img) => {
-            frameImgRef.current = img;
-          })
-          .catch(() => {
-            frameImgRef.current = null;
-          });
+          .then(drawWithFrame)
+          .catch(() => drawWithFrame(null));
       });
-  }, [activeFrameUrl, frameKey]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeFrameUrl, drawCanvas, frameKey]);
 
   const handleImageSelect = useCallback(
     async (file: File) => {
@@ -507,6 +531,8 @@ export default function CanvasEditor({
                 }}
               >
                 {previewUrl ? (
+                  // Molduras dinâmicas devem refletir uploads sem cache do otimizador.
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={previewUrl}
                     alt={m.label || `Moldura ${i + 1}`}
@@ -543,6 +569,8 @@ export default function CanvasEditor({
         style={{ aspectRatio: aspectRatioCss, touchAction: "none" }}
       >
         {!hasPhoto && activeFrameUrl && (
+          // A prévia precisa usar exatamente a mesma URL carregada pelo Canvas.
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={activeFrameUrl}
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"

@@ -19,14 +19,40 @@ import {
   LogOut,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { CargoPoliticoDB } from "@/types/candidato";
+import type { ColinhaTravadoDB, PresidenteDB } from "@/types/colinha";
+
+interface CandidatoOption {
+  id: string;
+  slug: string;
+  nome_urna: string;
+  partido: string | null;
+  numero_candidato: string | null;
+  cargo_id: string | null;
+  url_foto_perfil: string | null;
+}
+
+interface ColinhaConfigEditavel {
+  id: string;
+  candidato_id: string;
+  presidente_id: string | null;
+}
+
+type ColinhaTravadoEditavel = Omit<
+  ColinhaTravadoDB,
+  "url_foto_pendente" | "created_at"
+> &
+  Partial<Pick<ColinhaTravadoDB, "url_foto_pendente" | "created_at">>;
 
 export default function AdminColinhaVisual() {
-  const [candidatos, setCandidatos] = useState<any[]>([]);
-  const [cargosSistema, setCargosSistema] = useState<any[]>([]);
-  const [presidentes, setPresidentes] = useState<any[]>([]);
+  const router = useRouter();
+  const [candidatos, setCandidatos] = useState<CandidatoOption[]>([]);
+  const [cargosSistema, setCargosSistema] = useState<CargoPoliticoDB[]>([]);
+  const [presidentes, setPresidentes] = useState<PresidenteDB[]>([]);
   const [selectedCandidatoId, setSelectedCandidatoId] = useState<string>("");
-  const [config, setConfig] = useState<any>(null);
-  const [travados, setTravados] = useState<any[]>([]);
+  const [config, setConfig] = useState<ColinhaConfigEditavel | null>(null);
+  const [travados, setTravados] = useState<ColinhaTravadoEditavel[]>([]);
   const [loadingListas, setLoadingListas] = useState(true);
   const [loadingColinha, setLoadingColinha] = useState(false);
   const [isSavingGeral, setIsSavingGeral] = useState(false);
@@ -112,7 +138,9 @@ export default function AdminColinhaVisual() {
 
     buscarColinhaDoCandidato();
   }, [selectedCandidatoId]);
-  const handleToggleTrancamento = (cargoObj: any) => {
+  const handleToggleTrancamento = (cargoObj: CargoPoliticoDB) => {
+    if (!config) return;
+
     const existente = travados.find(
       (t) =>
         t.cargo_nome?.trim().toLowerCase() ===
@@ -126,9 +154,9 @@ export default function AdminColinhaVisual() {
         ),
       );
     } else {
-      const novoSlotLocal = {
+      const novoSlotLocal: ColinhaTravadoEditavel = {
         id: crypto.randomUUID(),
-        colinha_config_id: config?.id,
+        colinha_config_id: config.id,
         cargo_nome: cargoObj.nome,
         nome_urna: "",
         partido: candidatoSelecionadoObj?.partido || "",
@@ -220,7 +248,9 @@ export default function AdminColinhaVisual() {
     );
   };
   const handleLocalPresidenteChange = (idPres: string) => {
-    setConfig((prev: any) => ({ ...prev, presidente_id: idPres || null }));
+    setConfig((prev) =>
+      prev ? { ...prev, presidente_id: idPres || null } : prev,
+    );
   };
   const handleSalvarTudo = async () => {
     if (!config) return;
@@ -287,9 +317,10 @@ export default function AdminColinhaVisual() {
 
       setTravados(novaCargaTravados || []);
       alert("Toda a estrutura da colinha foi salva com sucesso!");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const mensagem = err instanceof Error ? err.message : "Erro desconhecido";
       console.error("Erro no salvamento mestre:", err);
-      alert(`Erro crítico ao salvar alterações: ${err.message}`);
+      alert(`Erro crítico ao salvar alterações: ${mensagem}`);
     } finally {
       setIsSavingGeral(false);
     }
@@ -301,7 +332,8 @@ export default function AdminColinhaVisual() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    router.replace("/login");
+    router.refresh();
   };
 
   if (loadingListas) {
@@ -505,7 +537,7 @@ export default function AdminColinhaVisual() {
                               disabled={isDonoDoSite || !isTravado}
                               value={
                                 isDonoDoSite
-                                  ? candidatoSelecionadoObj.numero_candidato
+                                  ? candidatoSelecionadoObj.numero_candidato || ""
                                   : isTravado
                                     ? travadoObj.numero
                                     : ""

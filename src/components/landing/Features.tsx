@@ -20,7 +20,7 @@ export default function Features() {
     {
       icon: <ShieldCheck className="text-blue-600" size={24} />,
       title: "Segurança de Dados",
-      desc: "Infraestrutura robusta integrada com Supabase, garantindo estabilidade mesmo em picos de acessos simultâneos.",
+      desc: "Infraestrutura robusta integrada, garantindo estabilidade mesmo em picos de acessos simultâneos.",
     },
   ];
 

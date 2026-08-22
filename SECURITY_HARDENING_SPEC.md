@@ -269,7 +269,7 @@ Status: [x] Concluída e validada no Supabase e na aplicação em 19/08/2026.
 
 Prioridade: média-alta.
 
-Status: [~] Configurações e fluxos anteriores validados; enforcement AAL2 preparado em 20/08/2026 e pendente de aplicação e testes manuais.
+Status: [x] Concluída e validada no Supabase e na aplicação em 21/08/2026.
 
 Decisão do P.O.: exigir senha de no mínimo 8 caracteres, em substituição aos 12 caracteres inicialmente propostos.
 
@@ -278,7 +278,7 @@ Decisão do P.O.: exigir senha de no mínimo 8 caracteres, em substituição aos
 - [!] Limites server-side de sessão indisponíveis no plano atual; mitigação client-side mantida.
 - [x] Exigir senha de no mínimo 8 caracteres conforme decisão do P.O.; Supabase configurado também com minúsculas, maiúsculas, números e símbolos.
 - [!] Proteção contra senhas vazadas indisponível no plano atual.
-- [~] TOTP habilitado; migration, desafio MFA, guard e APIs com exigência AAL2 preparados, aguardando aplicação e validação manual.
+- [x] TOTP e enforcement AAL2 ativos em produção; catálogo, desafio MFA, guard, APIs, permissões e limites temporais da sessão validados.
 - [x] `Site URL`, rotas de produção e localhost conferidos; curingas amplos removidos.
 - [x] Revalidar autorização nas páginas/rotas sensíveis, sem depender apenas do proxy.
 - [x] Testar logout em múltiplas abas e remoção de usuário com sessão ativa.
@@ -290,24 +290,26 @@ Decisão do P.O.: exigir senha de no mínimo 8 caracteres, em substituição aos
 
 Prioridade: média.
 
+Status: [~] Implementação local concluída em 21/08/2026. Build, lint direcionado e 27 testes aprovados. Aguarda configuração das variáveis, deploy e validação de produção conforme `supabase/tests/SEC009_MANUAL_TESTS.md`.
+
 ### Cabeçalhos
 
-- [ ] `Strict-Transport-Security` em produção.
-- [ ] `X-Content-Type-Options: nosniff`.
-- [ ] `Referrer-Policy`.
-- [ ] `Permissions-Policy`.
-- [ ] Proteção contra framing.
-- [ ] CSP inicialmente em `Report-Only`, incluindo apenas origens necessárias.
+- [x] `Strict-Transport-Security: max-age=63072000` confirmado em produção pela Vercel em 21/08/2026.
+- [x] `X-Content-Type-Options: nosniff` implementado; aguarda validação em produção.
+- [x] `Referrer-Policy` implementada; aguarda validação em produção.
+- [x] `Permissions-Policy` implementada; aguarda validação em produção.
+- [x] Proteção contra framing implementada com exceções exatas por candidato e origem via `CANDIDATE_FRAME_ALLOWLIST`; aguarda validação em produção.
+- [x] CSP de recursos implementada em `Report-Only`, incluindo apenas origens necessárias; aguarda inspeção em produção.
 
 ### Endpoints
 
-- [ ] Remover/substituir `/api/leads`, que apenas imprime PII no log.
-- [ ] Remover `/api/stats`, que consulta `leads_candidatos`.
-- [ ] Remover logs com PII, payload ou tokens.
-- [ ] Validar tamanhos e formatos em `/api/contato`.
-- [ ] Escapar campos inseridos no HTML do e-mail.
-- [ ] Adicionar proteção contra spam ao contato.
-- [ ] Corrigir/remover `allowedDevOrigins` da configuração de produção.
+- [x] Remover/substituir `/api/leads`, concluído na SEC-004.
+- [x] Remover `/api/stats`, que consultava `leads_candidatos`.
+- [x] Remover logs com PII, payload ou tokens.
+- [x] Validar tamanhos e formatos em `/api/contato`.
+- [x] Escapar campos inseridos no HTML do e-mail.
+- [x] Adicionar honeypot e Cloudflare Turnstile ao contato; aguarda chaves e teste em produção.
+- [x] Restringir `allowedDevOrigins` ao IP exato e somente em desenvolvimento.
 
 ---
 
@@ -315,11 +317,13 @@ Prioridade: média.
 
 Prioridade: média.
 
+Status: [~] Auditoria inicial concluída e plano preparado em `SEC010_IMPLEMENTATION_PLAN.md` em 21/08/2026. Nenhuma dependência ou código funcional foi alterado nesta preparação.
+
 - [x] Corrigir vulnerabilidades transitivas do Next.js, NanoID, PostCSS, Sharp e WS.
-- [ ] Substituir `xlsx@0.18.5`; o audit ainda aponta Prototype Pollution e ReDoS sem correção disponível nesse pacote npm.
-- [ ] Validar a alternativa exportando 5.000 leads e caracteres em português.
-- [ ] Corrigir os 16 erros atuais do ESLint.
-- [ ] Corrigir o teste de pinch zoom: esperado `3`, recebido aproximadamente `2.18`.
+- [x] Substituir `xlsx@0.18.5` por `write-excel-file@4.1.1`; `npm audit` retornou zero vulnerabilidades em 21/08/2026.
+- [x] Alternativa validada com 5.000 leads, caracteres em português e abertura correta no Excel/LibreOffice em 21/08/2026.
+- [x] ESLint corrigido: zero erros e zero avisos em 21/08/2026; aguarda validação funcional curta da SEC010-C.
+- [x] Teste de pinch zoom aprovado; a suíte completa passou com 27 testes em 21/08/2026.
 - [ ] Adicionar build, lint, testes e audit ao processo de entrega.
 
 ### Testes de segurança a criar

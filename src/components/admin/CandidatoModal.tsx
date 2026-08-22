@@ -356,6 +356,8 @@ export default function CandidatoModal({
                 </span>
                 <div className="relative w-28 h-28 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden group shadow-inner">
                   {formData.url_foto_perfil ? (
+                    // Prévia dinâmica do upload deve ser exibida sem cache intermediário.
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={formData.url_foto_perfil}
                       className="w-full h-full object-cover"
@@ -546,6 +548,8 @@ export default function CandidatoModal({
                               </button>
                             )}
                             {url ? (
+                              // Prévia dinâmica da moldura deve refletir a troca imediatamente.
+                              // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={url}
                                 className="w-full h-full object-contain p-2"

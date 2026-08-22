@@ -1,4 +1,5 @@
-import { Target, Users2, ShieldCheck, Zap } from "lucide-react";
+import Image from "next/image";
+import { Zap } from "lucide-react";
 
 interface HeroProps {
   onOpenContact: () => void;
@@ -56,9 +57,11 @@ export default function Hero({ onOpenContact }: HeroProps) {
               </div>
             </div>
             <div className="aspect-[4/5] bg-slate-100 rounded-[2rem] overflow-hidden relative border border-slate-200/60 flex items-center justify-center group">
-              <img
+              <Image
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop"
-                className="w-full h-full object-cover grayscale-[20%]"
+                fill
+                sizes="(max-width: 1024px) 340px, 28vw"
+                className="object-cover grayscale-[20%]"
                 alt="Exemplo de Apoiador"
               />
               <div className="absolute inset-0 border-[12px] border-blue-600 flex flex-col justify-end p-3 text-white pointer-events-none bg-gradient-to-t from-blue-900/80 via-transparent to-transparent">

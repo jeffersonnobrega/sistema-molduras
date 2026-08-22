@@ -36,7 +36,10 @@ describe("PhotoUpload — Validação de arquivo", () => {
   });
 
   it("deve aceitar qualquer tamanho de arquivo (sem rejeição por tamanho)", () => {
-    const semLimiteTamanho = (_size: number) => true;
+    const semLimiteTamanho = (size: number) => {
+      void size;
+      return true;
+    };
     expect(semLimiteTamanho(1 * 1024 * 1024)).toBe(true);
     expect(semLimiteTamanho(10 * 1024 * 1024)).toBe(true);
     expect(semLimiteTamanho(50 * 1024 * 1024)).toBe(true);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { CandidatoDB } from "@/types/candidato";
 import CandidatoModal from "@/components/admin/CandidatoModal";
@@ -36,6 +36,7 @@ export default function AdminDashboard() {
 }
 
 function AdminDashboardContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [candidatos, setCandidatos] = useState<CandidatoDB[]>([]);
   const [activeTab, setActiveTab] = useState<"stats" | "leads">(
@@ -84,7 +85,8 @@ function AdminDashboardContent() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    router.replace("/login");
+    router.refresh();
   };
 
   const handleToggleStatus = async (candidato: CandidatoDB) => {

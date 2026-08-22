@@ -33,13 +33,18 @@ select jsonb_build_object(
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
-      and pg_get_functiondef(p.oid) ilike '%aal%'
+      and p.prokind = 'f'
+      and case
+        when p.prokind = 'f' then pg_get_functiondef(p.oid)
+        else ''
+      end ilike '%aal%'
   ), '[]'::jsonb)
 ) as sec008_aal_audit;
 ```
 
 Resultado esperado:
 
+- [x] Migration aplicada e auditoria do catálogo aprovada em 20/08/2026.
 - `functions_with_aal` contém `is_admin_aal2`, `can_manage_candidato`,
   `get_accessible_leads` e `protect_candidato_system_fields`;
 - as políticas exclusivas de superadmin apontam para `is_admin_aal2()`;
@@ -47,34 +52,33 @@ Resultado esperado:
 
 ## 2. Superadmin em AAL1
 
-- [ ] Login com senha redireciona para `/admin/mfa` antes de mostrar o painel.
-- [ ] Se já existir TOTP verificado, a página solicita o código atual.
-- [ ] Se não existir TOTP, a página exibe QR Code e segredo para cadastro.
-- [ ] Código inválido é recusado.
-- [ ] A API `/api/admin/users` retorna `403` usando o JWT AAL1.
-- [ ] A API `/api/admin/create-user` retorna `403` usando o JWT AAL1.
-- [ ] Escritas exclusivas de superadmin são recusadas diretamente pela Data API.
-- [ ] `get_accessible_leads` não retorna todos os leads em AAL1.
+- [x] Login com senha redireciona para `/admin/mfa` antes de mostrar o painel.
+- [x] Se já existir TOTP verificado, a página solicita o código atual.
+- [x] Se não existir TOTP, a página exibe QR Code e segredo para cadastro.
+- [x] Código inválido é recusado.
+- [x] A API `/api/admin/users` retorna `403` usando o JWT AAL1.
+- [x] A API `/api/admin/create-user` retorna `403` usando o JWT AAL1.
+- [x] Escritas exclusivas de superadmin são recusadas diretamente pela Data API.
+- [x] `get_accessible_leads` não retorna todos os leads em AAL1.
 
 ## 3. Superadmin em AAL2
 
-- [ ] Código TOTP válido eleva a sessão e abre o destino administrativo.
-- [ ] Recarregar dashboard e colinha mantém o acesso.
-- [ ] O superadmin continua vendo todos os candidatos e leads.
-- [ ] Criar, listar e remover acessos administrativos continua funcionando.
-- [ ] Ativar/inativar e cadastrar/excluir candidato continua funcionando.
+- [x] Código TOTP válido eleva a sessão e abre o destino administrativo.
+- [x] Recarregar dashboard e colinha mantém o acesso.
+- [x] O superadmin continua vendo todos os candidatos e leads.
+- [x] Criar, listar e remover acessos administrativos continua funcionando.
+- [x] Ativar/inativar e cadastrar/excluir candidato continua funcionando.
 
 ## 4. Gestor de candidato
 
-- [ ] Gestor vinculado não é enviado para `/admin/mfa`.
-- [ ] Gestor continua vendo somente candidatos e leads vinculados.
-- [ ] Gestor continua impedido de acessar as APIs exclusivas de superadmin.
-- [ ] Um superadmin também vinculado como gestor continua exigindo AAL2.
+- [x] Gestor vinculado não é enviado para `/admin/mfa`.
+- [x] Gestor continua vendo somente candidatos e leads vinculados.
+- [x] Gestor continua impedido de acessar as APIs exclusivas de superadmin.
+- [x] Um superadmin também vinculado como gestor continua exigindo AAL2.
 
 ## 5. Sessão e recuperação
 
-- [ ] Logout na tela MFA encerra a sessão.
-- [ ] Após 30 minutos de inatividade, a sessão continua sendo encerrada.
-- [ ] Após 8 horas de duração absoluta, a sessão continua sendo encerrada.
-- [ ] Convite e recuperação de senha continuam funcionando.
-
+- [x] Logout na tela MFA encerra a sessão.
+- [x] Após 30 minutos de inatividade, a sessão continua sendo encerrada.
+- [x] Após 8 horas de duração absoluta, a sessão continua sendo encerrada.
+- [x] Convite e recuperação de senha continuam funcionando.

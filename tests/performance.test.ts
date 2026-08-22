@@ -76,6 +76,7 @@ describe("CanvasEditor — Performance de renderização", () => {
     const duracao = performance.now() - start;
     expect(duracao).toBeLessThan(200);
     expect(offsetX).toBeGreaterThan(0);
+    expect(offsetY).toBeGreaterThan(0);
   });
 
   it("deve processar 60 frames de pinch zoom em menos de 200ms total", () => {

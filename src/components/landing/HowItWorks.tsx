@@ -18,7 +18,7 @@ export default function HowItWorks() {
       icon: <Share2 size={24} className="text-blue-600" />,
       stepNumber: "03",
       title: "A mágica acontece",
-      desc: "O sistema processa a foto com a moldura em menos de meio segundo. O eleitor faz o download ou compartilha direto no WhatsApp com um clique, espalhando sua campanha.",
+      desc: "O sistema processa a foto com a moldura em menos de meio segundo. O eleitor faz o download ou compartilha direto com um clique, espalhando sua campanha.",
     },
   ];
 

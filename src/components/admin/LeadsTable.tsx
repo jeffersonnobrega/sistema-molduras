@@ -11,7 +11,10 @@ import {
   Tag,
   Download,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import {
+  buildLeadExportSheet,
+  sanitizeExportFileSegment,
+} from "@/lib/leads-export";
 
 interface Lead {
   id: string;
@@ -35,6 +38,8 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [candidateFilter, setCandidateFilter] = useState(slug || "");
   const [loadError, setLoadError] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const carregarLeads = useCallback(async () => {
     setLoading(true);
@@ -83,34 +88,36 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
     );
   });
 
-  const exportarExcel = () => {
-    const dados = leadsFiltrados.map((lead) => ({
-      Nome: lead.nome || "Não informado",
-      WhatsApp: lead.whatsapp,
-      ...(slug
-        ? {}
-        : {
-            Candidato: lead.candidatos?.nome_urna || lead.candidato_slug,
-          }),
-      "Data de Captura": new Date(lead.created_at).toLocaleString("pt-BR"),
-    }));
+  const exportarExcel = async () => {
+    setExporting(true);
+    setExportError("");
+    try {
+      const records = leadsFiltrados.map((lead) => ({
+        nome: lead.nome || "Não informado",
+        whatsapp: lead.whatsapp,
+        candidato: lead.candidatos?.nome_urna || lead.candidato_slug,
+        createdAt: lead.created_at,
+      }));
+      const sheet = buildLeadExportSheet(records, !slug);
+      const { default: writeExcelFile } = await import(
+        "write-excel-file/browser"
+      );
+      const fileSegment = sanitizeExportFileSegment(
+        candidateFilter || slug || "todos",
+      );
 
-    const worksheet = XLSX.utils.json_to_sheet(dados);
-
-    worksheet["!cols"] = [
-      { wch: 28 },
-      { wch: 20 },
-      ...(slug ? [] : [{ wch: 24 }]),
-      { wch: 24 },
-    ];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
-
-    XLSX.writeFile(
-      workbook,
-      `leads-${candidateFilter || slug || "todos"}-${new Date().toISOString().slice(0, 10)}.xlsx`,
-    );
+      await writeExcelFile(sheet.data, {
+        sheet: "Leads",
+        columns: sheet.columns,
+        stickyRowsCount: 1,
+      }).toFile(
+        `leads-${fileSegment}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      );
+    } catch {
+      setExportError("Não foi possível gerar a planilha. Tente novamente.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (loading) {
@@ -175,17 +182,26 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
         )}
 
         <div className="flex items-center gap-2">
+          {exportError && (
+            <span className="text-[10px] font-bold text-red-600">
+              {exportError}
+            </span>
+          )}
           <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
             Total: {leadsFiltrados.length} Registros
           </span>
 
           <button
             onClick={exportarExcel}
-            disabled={leadsFiltrados.length === 0}
+            disabled={leadsFiltrados.length === 0 || exporting}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest shadow hover:bg-emerald-700 transition-all disabled:opacity-40"
           >
-            <Download size={14} />
-            Baixar Excel
+            {exporting ? (
+              <Loader2 className="animate-spin" size={14} />
+            ) : (
+              <Download size={14} />
+            )}
+            {exporting ? "Gerando..." : "Baixar Excel"}
           </button>
         </div>
       </div>
@@ -249,6 +265,8 @@ export default function LeadsTable({ slug }: LeadsTableProps) {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2.5">
                         {lead.candidatos?.url_foto_perfil ? (
+                          // URL dinâmica do Storage; a miniatura não é conteúdo LCP.
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={lead.candidatos.url_foto_perfil}
                             alt=""
