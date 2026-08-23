@@ -317,7 +317,7 @@ export default async function CandidatoPage({ params }: PageProps) {
 
             <CandidatoColinha
               candidatoData={{
-                id: candidato.id,
+                slug: candidato.slug,
                 nome_urna: candidato.nome_urna,
                 numero_candidato: candidato.numero_candidato,
                 url_foto_perfil: candidato.url_foto_perfil,
@@ -326,7 +326,6 @@ export default async function CandidatoPage({ params }: PageProps) {
               }}
               config={{
                 tipo_regional: tipoRegionalAdmin,
-                lead_id: undefined,
               }}
               theme={theme.editor}
               cargosIniciais={campaign.cargos}

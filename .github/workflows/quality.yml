@@ -45,6 +45,7 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://example.com
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
           TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
+          PUBLIC_API_HASH_SECRET: ci-public-api-hash-secret
           RESEND_API_KEY: re_ci_placeholder
           CONTACT_EMAIL: ci@example.com
           SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key

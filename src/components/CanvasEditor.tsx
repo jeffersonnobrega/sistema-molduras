@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import PhotoUpload from "./PhotoUpload";
 import LeadForm from "./LeadForm";
-import { supabase } from "@/lib/supabase";
 import { Layout, Square, UserSquare2 } from "lucide-react";
+import { createRequestId, recordPublicEvent } from "@/lib/public-events";
 
 interface MolduraSet {
   label: string;
@@ -26,6 +26,7 @@ interface LeadData {
   whatsapp: string;
   lgpd_consent: boolean;
   consent_version: string;
+  turnstile_token: string;
 }
 
 interface FrameDimensions {
@@ -123,6 +124,7 @@ export default function CanvasEditor({
   const [dimsMap, setDimsMap] = useState<Record<string, FrameDimensions>>({});
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const leadRequestIdRef = useRef<string | null>(null);
   const userImgRef = useRef<HTMLImageElement | null>(null);
   const frameImgRef = useRef<HTMLImageElement | null>(null);
   const lastFrameKey = useRef("");
@@ -436,11 +438,9 @@ export default function CanvasEditor({
         `${nome_urna}-${format}.png`,
         `Apoio ${nome_urna}! Crie a sua foto também 🗳️\n${urlAtual}`,
       );
-      supabase
-        .rpc("increment_shares_count", { slug_candidato: candidatoId })
-        .then(({ error }) => {
-          if (error) console.error(error.message);
-        });
+      recordPublicEvent(candidatoId, "share").catch(() => {
+        console.error("Não foi possível registrar o compartilhamento.");
+      });
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== "AbortError") console.error(err);
     }
@@ -449,21 +449,22 @@ export default function CanvasEditor({
 
   const handleSubmit = async (data: LeadData) => {
     if (!canvasRef.current || !hasPhoto) return;
-    const { error: leadError } = await supabase.from("leads").insert([
-      {
-        nome: data.nome,
-        whatsapp: data.whatsapp,
-        lgpd_consent: data.lgpd_consent,
-        consent_version: data.consent_version,
+    const requestId = leadRequestIdRef.current ?? createRequestId();
+    leadRequestIdRef.current = requestId;
+
+    const response = await fetch("/api/public/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        request_id: requestId,
         candidato_slug: candidatoId,
-      },
-    ]);
-    if (leadError) throw leadError;
-    supabase
-      .rpc("increment_leads_count", { slug_candidato: candidatoId })
-      .then(({ error }) => {
-        if (error) console.error(error.message);
-      });
+        ...data,
+      }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) throw new Error("Não foi possível registrar o apoio.");
+    leadRequestIdRef.current = null;
     setIsSubmitted(true);
   };
 

@@ -3,8 +3,8 @@
 import React, { useState, useRef } from "react";
 import { toBlob } from "html-to-image";
 import { CheckCircle2, Image as ImageIcon } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 import type { CandidatoTheme } from "@/lib/theme-mapper";
+import { recordPublicEvent } from "@/lib/public-events";
 
 async function saveOrDownload(blob: Blob, filename: string): Promise<void> {
   const objectUrl = URL.createObjectURL(blob);
@@ -18,7 +18,7 @@ async function saveOrDownload(blob: Blob, filename: string): Promise<void> {
 }
 
 interface CandidatoData {
-  id: string;
+  slug: string;
   nome_urna: string;
   numero_candidato: string;
   url_foto_perfil: string;
@@ -51,7 +51,6 @@ interface ColinhaProps {
   candidatoData: CandidatoData;
   config: {
     tipo_regional: "Deputado Estadual" | "Deputado Distrital";
-    lead_id?: string;
   };
   theme: CandidatoTheme["editor"];
   cargosIniciais: CargoPublico[];
@@ -121,48 +120,6 @@ export default function CandidatoColinha({
     return blob;
   };
 
-  const salvarDadosColinha = async () => {
-    if (!config.lead_id) return;
-
-    const pegarNumeroFinal = (nomeCargo: string) => {
-      const c = cargos.find(
-        (item) => item.nome.toUpperCase() === nomeCargo.toUpperCase(),
-      );
-      if (!c) return null;
-      if (c.id === candidatoData.cargo_id)
-        return candidatoData.numero_candidato;
-      const travado = itensTravados.find(
-        (t) => t.cargo_nome.toUpperCase() === nomeCargo.toUpperCase(),
-      );
-      if (travado) return travado.numero;
-      return valoresDigitados[c.id] || null;
-    };
-    const presidenteCargoId = cargos.find(
-      (c) => c.nome.toUpperCase() === "PRESIDENTE",
-    )?.id;
-
-    await supabase.from("colinhas_salvas").insert([
-      {
-        lead_id: config.lead_id,
-        candidato_original_id: candidatoData.id,
-        num_dep_federal: pegarNumeroFinal("Deputado Federal"),
-        num_dep_estadual_distrital:
-          config.tipo_regional === "Deputado Distrital"
-            ? pegarNumeroFinal("Deputado Distrital")
-            : pegarNumeroFinal("Deputado Estadual"),
-        num_senador_1: pegarNumeroFinal("Senador - Vaga 1"),
-        num_senador_2: pegarNumeroFinal("Senador - Vaga 2"),
-        num_governador: pegarNumeroFinal("Governador"),
-        num_presidente: presidenteData
-          ? presidenteData.numero
-          : (presidenteCargoId && valoresDigitados[presidenteCargoId]) || null,
-      },
-    ]);
-
-    await supabase.rpc("increment_colinha_download", {
-      slug_candidato: candidatoData.id,
-    });
-  };
   const handleExport = async () => {
     if (!colinhaRef.current) return;
     setIsExporting(true);
@@ -170,7 +127,9 @@ export default function CandidatoColinha({
       const blob = await gerarPngBlob();
       const filename = `colinha-${candidatoData.nome_urna.toLowerCase()}.png`;
       await saveOrDownload(blob, filename);
-      await salvarDadosColinha();
+      recordPublicEvent(candidatoData.slug, "colinha_download").catch(() => {
+        console.error("Não foi possível registrar o download da colinha.");
+      });
     } catch (err) {
       console.error("Erro na exportação:", err);
     } finally {
@@ -211,6 +170,9 @@ export default function CandidatoColinha({
           "_blank",
         );
       }
+      recordPublicEvent(candidatoData.slug, "share").catch(() => {
+        console.error("Não foi possível registrar o compartilhamento.");
+      });
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== "AbortError") {
         console.error("Erro ao compartilhar colinha:", err);

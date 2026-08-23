@@ -317,14 +317,14 @@ Status: [~] Implementação local concluída em 21/08/2026. Build, lint direcion
 
 Prioridade: média.
 
-Status: [~] SEC010-A, SEC010-B, SEC010-C e SEC010-D concluídas. SEC010-E implementada e validada localmente em 22/08/2026; aguarda a primeira execução aprovada no GitHub Actions.
+Status: [x] Concluída em 22/08/2026. SEC010-A a SEC010-E implementadas e validadas; workflow `Quality` aprovado no GitHub Actions.
 
 - [x] Corrigir vulnerabilidades transitivas do Next.js, NanoID, PostCSS, Sharp e WS.
 - [x] Substituir `xlsx@0.18.5` por `write-excel-file@4.1.1`; `npm audit` retornou zero vulnerabilidades em 21/08/2026.
 - [x] Alternativa validada com 5.000 leads, caracteres em português e abertura correta no Excel/LibreOffice em 21/08/2026.
 - [x] ESLint corrigido: zero erros e zero avisos; validação funcional da SEC010-C aprovada em produção em 22/08/2026.
 - [x] Teste de pinch zoom aprovado; a suíte completa passou com 27 testes em 21/08/2026.
-- [x] Adicionar build, lint, testes e audit ao processo de entrega; workflow criado e validação local aprovada em 22/08/2026.
+- [x] Adicionar build, lint, testes e audit ao processo de entrega; workflow `Quality` aprovado no GitHub Actions em 22/08/2026.
 
 ### Testes de segurança a criar
 
@@ -343,6 +343,8 @@ Status: [~] SEC010-A, SEC010-B, SEC010-C e SEC010-D concluídas. SEC010-E implem
 ## SEC-011 — Criar API pública de leads e eventos
 
 Prioridade de segurança: alta. Ordem de implementação: última por decisão do projeto.
+
+Status: [~] Fundação aplicada e validada em 23/08/2026. API e frontend preparados; aguardando configuração da Vercel, deploy, testes em produção e fechamento dos acessos legados.
 
 ### Endpoints previstos
 

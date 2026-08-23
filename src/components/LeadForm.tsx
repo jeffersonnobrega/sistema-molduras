@@ -2,6 +2,9 @@
 
 import { ChangeEvent, useState } from "react";
 import Link from "next/link";
+import TurnstileChallenge, {
+  TURNSTILE_DEVELOPMENT_SITE_KEY,
+} from "@/components/TurnstileChallenge";
 
 
 interface LeadFormProps {
@@ -10,6 +13,7 @@ interface LeadFormProps {
     whatsapp: string;
     lgpd_consent: boolean;
     consent_version: string;
+    turnstile_token: string;
   }) => Promise<void>;
 
   nome_urna: string;
@@ -313,6 +317,11 @@ const validarTelefone = (value: string): PhoneValidationResult => {
 
 
 export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
+  const siteKey =
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
+    (process.env.NODE_ENV === "development"
+      ? TURNSTILE_DEVELOPMENT_SITE_KEY
+      : undefined);
   const [nome, setNome] = useState("");
 
   const [whatsapp, setWhatsapp] = useState("+55 ");
@@ -320,6 +329,8 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
   const [lgpdConsent, setLgpdConsent] = useState(false);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [challengeKey, setChallengeKey] = useState(0);
 
 
   const handleNomeChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -385,6 +396,11 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
       return;
     }
 
+    if (!siteKey || !turnstileToken) {
+      setErro("Conclua a verificação de segurança.");
+      return;
+    }
+
     setLoading(true);
     setErro("");
 
@@ -396,9 +412,12 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
 
         lgpd_consent: lgpdConsent,
         consent_version: "1.0",
+        turnstile_token: turnstileToken,
       });
     } catch {
       setErro("Falha ao salvar dados. Tente novamente.");
+      setTurnstileToken("");
+      setChallengeKey((value) => value + 1);
     } finally {
       setLoading(false);
     }
@@ -416,6 +435,8 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
     partesNome.length >= 2 &&
     telefoneMinimamentePreenchido &&
     lgpdConsent &&
+    Boolean(siteKey) &&
+    Boolean(turnstileToken) &&
     !loading;
 
 
@@ -502,6 +523,19 @@ export default function LeadForm({ onSubmit, nome_urna }: LeadFormProps) {
           .
         </label>
       </div>
+
+      {siteKey ? (
+        <TurnstileChallenge
+          key={challengeKey}
+          siteKey={siteKey}
+          action="lead"
+          onToken={setTurnstileToken}
+        />
+      ) : (
+        <p className="text-[11px] text-amber-700 font-bold text-center bg-amber-50 py-2 px-3 rounded-xl">
+          Formulário temporariamente indisponível.
+        </p>
+      )}
 
       {erro && (
         <p className="text-[10px] text-red-600 font-bold text-center uppercase animate-pulse italic">

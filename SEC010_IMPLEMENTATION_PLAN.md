@@ -44,8 +44,8 @@ O workflow `.github/workflows/quality.yml` da SEC010-E foi criado em
 22/08/2026 com permissão somente de leitura, valores sintéticos no build e as
 etapas `npm ci`, lint, testes, build e auditoria. A validação local aprovou o
 ESLint, 30 testes, o build de produção e `npm audit` com zero vulnerabilidades.
-A fase aguarda somente a primeira execução aprovada no GitHub Actions após um
-`push` ou `pull_request`.
+O workflow `Quality` foi aprovado no GitHub Actions em 22/08/2026 após o
+`push`. A SEC010-E e a SEC-010 estão concluídas.
 
 ## Auditoria confirmada
 
