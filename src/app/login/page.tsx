@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase, supabaseAuth } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
+import styles from "./page.module.css";
 
 type Mode = "login" | "reset_request" | "reset_sent";
 
@@ -120,7 +121,7 @@ export default function LoginPage() {
                 setEmail(e.target.value);
                 setError("");
               }}
-              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 ring-blue-500 transition-all disabled:opacity-50 text-sm"
+              className={`${styles.loginInput} w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 ring-blue-500 transition-all disabled:opacity-50 text-sm`}
             />
             <input
               type="password"
@@ -132,7 +133,7 @@ export default function LoginPage() {
                 setPassword(e.target.value);
                 setError("");
               }}
-              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 ring-blue-500 transition-all disabled:opacity-50 text-sm"
+              className={`${styles.loginInput} w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 ring-blue-500 transition-all disabled:opacity-50 text-sm`}
             />
             {error && (
               <p className="text-[11px] text-red-600 font-bold text-center">
@@ -177,7 +178,7 @@ export default function LoginPage() {
                 setEmail(e.target.value);
                 setError("");
               }}
-              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 ring-blue-500 transition-all disabled:opacity-50 text-sm"
+              className={`${styles.loginInput} w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 ring-blue-500 transition-all disabled:opacity-50 text-sm`}
             />
             {error && (
               <p className="text-[11px] text-red-600 font-bold text-center">
